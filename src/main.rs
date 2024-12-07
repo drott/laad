@@ -4,7 +4,7 @@ mod random_sender;
 mod types;
 mod frames;
 
-use random_sender::send_bytes;
+use random_sender::RandomSender;
 use frames::FrameParser;
 
 #[tokio::main]
@@ -12,7 +12,12 @@ async fn main() {
     let (bytes_tx, bytes_rx) = mpsc::channel(5);
     let (frames_tx, mut frames_rx) = mpsc::channel(5);
 
-    tokio::spawn(send_bytes(bytes_tx));
+    
+    let sender = RandomSender::new(bytes_tx);
+    
+    tokio::spawn(async move {
+        sender.send_bytes().await;
+    });
 
     let mut frame_parser = FrameParser::new();
     
