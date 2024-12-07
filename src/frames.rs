@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::types::{Bytes, Frame};
 use tokio::sync::mpsc;
 
@@ -34,8 +36,29 @@ impl FrameParser {
                         println!("Failed to send frame: {:?}", e);
                     }
                 }
+                (true, Some(start), None) => {
+                    self.opened_frame.extend_from_slice(&bytes.0[start..]);
+                }
+                (false, None, None) => {
+                    self.opened_frame.extend_from_slice(&bytes.0);
+                }
+                (false, None, Some(end)) => {
+                    self.opened_frame.extend_from_slice(&bytes.0[..=end]);
+                    if let Err(e) = tx.send(Frame(self.opened_frame.clone())).await {
+                        println!("Failed to send frame: {:?}", e);
+                    }
+                    self.opened_frame.clear();
+                }
+                (true, None, None) => {
+                    // No start or end byte in this buffer, skip packet.
+                }
                 _ => {
-                    todo!("Handle the case where the frame is split between two buffers");
+                    panic!(
+                        "Invalid frame state. opened_frame.is_empty: {}, start_byte_at: {:?}, end_byte_at: {:?}",
+                        self.opened_frame.is_empty(),
+                        start_byte_at,
+                        end_byte_at
+                    );
                 }
             }
         }

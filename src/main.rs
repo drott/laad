@@ -13,7 +13,7 @@ async fn main() {
     let (frames_tx, mut frames_rx) = mpsc::channel(5);
 
     
-    let sender = RandomSender::new(bytes_tx);
+    let mut sender = RandomSender::new(bytes_tx);
     
     tokio::spawn(async move {
         sender.send_bytes().await;
