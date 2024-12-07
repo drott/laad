@@ -1,18 +1,26 @@
 use tokio::sync::mpsc;
 
 mod random_sender;
-use random_sender::send_bytes;
 mod types;
+mod frames;
+
+use random_sender::send_bytes;
+use frames::FrameParser;
 
 #[tokio::main]
 async fn main() {
-    let (tx, mut rx) = mpsc::channel(100);
+    let (bytes_tx, bytes_rx) = mpsc::channel(5);
+    let (frames_tx, mut frames_rx) = mpsc::channel(5);
 
-    // Spawn a task to send byte sequences
-    tokio::spawn(send_bytes(tx));
-    // Convert the receiver to a stream
-    // Read directly from the receiver
-    while let Some(bytes) = rx.recv().await {
-        println!("Received: {:?}", bytes.0.iter().map(|b| format!("0x{:02x} ", b)).collect::<String>());
+    tokio::spawn(send_bytes(bytes_tx));
+
+    let mut frame_parser = FrameParser::new();
+    
+    tokio::spawn(async move {
+        frame_parser.parse_frames(bytes_rx, frames_tx).await;
+    });
+
+    while let Some(frame) = frames_rx.recv().await {
+        println!("Received frame: {:?}", frame.0.iter().map(|b| format!("0x{:02x} ", b)).collect::<String>());
     }
 }
