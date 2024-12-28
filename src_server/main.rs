@@ -26,11 +26,8 @@ const DEMO_PACKET: &[u8] = &[
 async fn handle_events(mut receiver_rx: tokio::sync::mpsc::Receiver<PeripheralEvent>) {
     while let Some(event) = receiver_rx.recv().await {
         match event {
-            PeripheralEvent::CharacteristicSubscriptionUpdate { .. } => {
-                // Send notifications to subscribed clients
-            }
+            PeripheralEvent::CharacteristicSubscriptionUpdate { .. } => {}
             PeripheralEvent::ReadRequest { responder, .. } => {
-                // Respond to Read request
                 if let Err(e) = responder.send(ReadRequestResponse {
                     value: DEMO_PACKET.to_vec(),
                     response: RequestResponse::Success,
@@ -75,6 +72,16 @@ fn make_service() -> Service {
     }
 }
 
+async fn send_update(peripheral: &mut Peripheral) {
+    peripheral
+        .update_characteristic(
+            Uuid::from_string(TX_RX_CHARACTERISTIC_UUID),
+            DEMO_PACKET.to_vec(),
+        )
+        .await
+        .expect("Failed to update characteristic");
+}
+
 #[tokio::main]
 async fn main() {
     let subscriber = FmtSubscriber::builder()
@@ -111,6 +118,7 @@ async fn main() {
     info!("Advertising Started");
 
     loop {
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        send_update(&mut peripheral).await;
     }
 }
