@@ -87,9 +87,19 @@ impl Decoder {
     fn decode_bb1dc(&self, frame: Frame) -> TbsPg {
         let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
         let voltage = u16::from_le_bytes([frame.0[8], frame.0[9]]) as f32 * 0.01;
-        let current =
-            u32::from_le_bytes([frame.0[10], frame.0[11], frame.0[12], 0]) as f32 * 0.01 - 80000.0;
-        let temperature = frame.0[13] as f32 * 0.5 - 40.0;
+        let current = if frame.0[10..13] == [0xFF, 0xFF, 0xFF] {
+            None
+        } else {
+            Some(
+                u32::from_le_bytes([frame.0[10], frame.0[11], frame.0[12], 0]) as f32 * 0.01
+                    - 80000.0,
+            )
+        };
+        let temperature = if frame.0[13] == 0xFF {
+            None
+        } else {
+            Some(frame.0[13] as f32 * 0.5 - 40.0)
+        };
         TbsPg::Bb1dc(BasicQuantities {
             voltage,
             current,

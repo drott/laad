@@ -8,7 +8,7 @@ mod types;
 
 use frames::FrameParser;
 use random_sender::RandomSender;
-use tracing::{info, Level};
+use tracing::{info,debug,Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
@@ -40,10 +40,10 @@ async fn main() {
         let decoded = decoder.decode_frame(frame);
         match decoded {
             protocol::TbsPg::Unknown => {
-                println!("Received unknown frame");
+                debug!("Received unknown frame");
             }
             _ => {
-                info!("Decoded frame: {:?}", decoded);
+                info!("Decoded frame: {:?}",decoded);
             }
         }
     }

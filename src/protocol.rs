@@ -64,8 +64,8 @@ pub struct VersionInfo {
 pub struct BasicQuantities {
     // TODO: Flag state.
     pub voltage: f32,
-    pub current: f32,
-    pub temperature: f32,
+    pub current: Option<f32>,
+    pub temperature: Option<f32>,
 }
 
 #[derive(Debug)]
