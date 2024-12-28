@@ -1,5 +1,7 @@
+use ble_receiver::BleReceiver;
 use tokio::sync::mpsc;
 
+mod ble_receiver;
 mod decoder;
 mod frames;
 mod protocol;
@@ -23,11 +25,27 @@ async fn main() {
     let (bytes_tx, bytes_rx) = mpsc::channel(5);
     let (frames_tx, mut frames_rx) = mpsc::channel(5);
 
-    let mut sender = RandomSender::new(bytes_tx);
+    let matches = clap::Command::new("tbslib")
+        .arg(
+            clap::Arg::new("ble")
+                .long("ble")
+                .help("Use BLE receiver instead of random sender")
+                .num_args(0)
+                .required(false),
+        )
+        .get_matches();
 
-    tokio::spawn(async move {
-        sender.send_bytes().await;
-    });
+    if matches.contains_id("ble") {
+        let mut sender = BleReceiver::new(bytes_tx);
+        tokio::spawn(async move {
+            sender.start_receiving().await;
+        });
+    } else {
+        let mut sender = RandomSender::new(bytes_tx);
+        tokio::spawn(async move {
+            sender.send_bytes().await;
+        });
+    }
 
     let mut frame_parser = FrameParser::new();
 
