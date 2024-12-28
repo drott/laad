@@ -30,12 +30,12 @@ async fn main() {
             clap::Arg::new("ble")
                 .long("ble")
                 .help("Use BLE receiver instead of random sender")
-                .num_args(0)
-                .required(false),
+                .required(false)
+                .action(clap::ArgAction::SetTrue),
         )
-        .get_matches();
+        .get_matches_from(std::env::args());
 
-    if matches.contains_id("ble") {
+    if matches.get_flag("ble") {
         let mut sender = BleReceiver::new(bytes_tx);
         tokio::spawn(async move {
             sender.start_receiving().await;

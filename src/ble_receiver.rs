@@ -104,7 +104,7 @@ impl BleReceiver {
                 return;
             }
         };
-        
+
         let mut notification_stream = match peripheral.notifications().await {
             Ok(stream) => stream,
             Err(err) => {
@@ -114,10 +114,14 @@ impl BleReceiver {
         };
 
         while let Some(notification) = notification_stream.next().await {
-            let hex_string: String = notification
-                .value
-                .iter()
-                .fold(String::new(), |mut acc, byte| { acc.push_str(&format!("{:02X}", byte)); acc });
+            let hex_string: String =
+                notification
+                    .value
+                    .iter()
+                    .fold(String::new(), |mut acc, byte| {
+                        acc.push_str(&format!("{:02X}", byte));
+                        acc
+                    });
             debug!(
                 "Received notification: 0x{}, sending to parser.",
                 hex_string
