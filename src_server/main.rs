@@ -14,12 +14,16 @@ use ble_peripheral_rust::{
 };
 use tokio::sync::mpsc::channel;
 use uuid::Uuid;
-use tracing::{info,error,Level};
+use tracing::{info,error,debug,Level};
 use tracing_subscriber::FmtSubscriber;
 
 
 const SERVICE_UUID: u16 = 0x1234_u16;
 const TX_RX_CHARACTERISTIC_UUID: &str = "65333333-A115-11E2-9E9A-0800200CA102";
+const DEMO_PACKET : &[u8] = &[
+    0xAA, 0x00, 0xFF, 0x1A, 0xF0, 0x08, 0xC0, 0xB0, 0x10, 0x27, 0x10, 0x27, 0xFD, 0xFF, 0x15,
+    0x99,
+];
 
 async fn handle_events(mut receiver_rx: tokio::sync::mpsc::Receiver<PeripheralEvent>) {
     while let Some(event) = receiver_rx.recv().await {
@@ -37,7 +41,7 @@ async fn handle_events(mut receiver_rx: tokio::sync::mpsc::Receiver<PeripheralEv
             } => {
                 // Respond to Read request
                 responder.send(ReadRequestResponse {
-                    value: String::from("Hello").into(),
+                    value: DEMO_PACKET.to_vec(),
                     response: RequestResponse::Success,
                 });
             }
@@ -47,7 +51,7 @@ async fn handle_events(mut receiver_rx: tokio::sync::mpsc::Receiver<PeripheralEv
                 value,
                 responder,
             } => {
-                // Respond to Write request
+                debug!("Received WriteRequest with value: {:X?}", value);
                 responder.send(WriteRequestResponse {
                     response: RequestResponse::Success,
                 });
