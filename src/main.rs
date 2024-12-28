@@ -1,3 +1,5 @@
+use tokio::sync::mpsc::Sender;
+
 use ble_receiver::BleReceiver;
 use tokio::sync::mpsc;
 
@@ -12,19 +14,9 @@ use frames::FrameParser;
 use random_sender::RandomSender;
 use tracing::{debug, info, Level};
 use tracing_subscriber::FmtSubscriber;
+use types::Bytes;
 
-#[tokio::main]
-async fn main() {
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::INFO)
-        .finish();
-
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-    info!("Tracing initialized");
-
-    let (bytes_tx, bytes_rx) = mpsc::channel(5);
-    let (frames_tx, mut frames_rx) = mpsc::channel(5);
-
+fn configure_and_run_source(bytes_tx: Sender<Bytes>) {
     let matches = clap::Command::new("tbslib")
         .arg(
             clap::Arg::new("ble")
@@ -46,6 +38,21 @@ async fn main() {
             sender.send_bytes().await;
         });
     }
+}
+
+#[tokio::main]
+async fn main() {
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::INFO)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    info!("Tracing initialized");
+
+    let (bytes_tx, bytes_rx) = mpsc::channel(5);
+    let (frames_tx, mut frames_rx) = mpsc::channel(5);
+
+    configure_and_run_source(bytes_tx);
 
     let mut frame_parser = FrameParser::new();
 
