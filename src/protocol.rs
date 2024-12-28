@@ -43,13 +43,15 @@ pub struct BankStatus {
 }
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct Version {
-    pub major : u32,
-    pub minor : u8,
-    pub maintenance : u8
+    pub major: u32,
+    pub minor: u8,
+    pub maintenance: u8,
 }
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct VersionInfo {
     pub firmware_version: Version,
     pub hardware_version: Version,
@@ -59,9 +61,20 @@ pub struct VersionInfo {
 
 #[derive(Debug)]
 #[allow(dead_code)]
+pub struct BasicQuantities {
+    // TODO: Flag state.
+    pub voltage: f32,
+    pub current: f32,
+    pub temperature: f32,
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
 pub enum TbsPg {
     Bb1st(BankStatus),
     Bb1cs(ChargeState),
+    Bb1dc(BasicQuantities),
     VersionInfo(VersionInfo),
+    Heartbeat,
     Unknown,
 }

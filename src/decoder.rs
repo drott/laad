@@ -1,5 +1,5 @@
 use crate::{
-    protocol::{BankStatus, TbsPg, Version, VersionInfo},
+    protocol::{BankStatus, BasicQuantities, TbsPg, Version, VersionInfo},
     types::Frame,
 };
 
@@ -11,6 +11,8 @@ type PgnTag = [u8; 2];
 
 const PGN_TAG_BB1ST: (PgnTag, usize) = ([0x1A, 0xF0], 16);
 const PGN_TAG_VERSION_INFO: (PgnTag, usize) = ([0x02, 0xF0], 16);
+const PGN_TAG_HEARTBEAT: (PgnTag, usize) = ([0xFF, 0xFF], 8);
+const PGN_TAG_BB1DC: (PgnTag, usize) = ([0x18, 0xF0], 16);
 
 impl Decoder {
     pub fn decode_frame(&self, frame: Frame) -> TbsPg {
@@ -20,10 +22,12 @@ impl Decoder {
         if frame_len < 8 {
             return TbsPg::Unknown;
         }
-        
+
         let pgn_tag = [frame.0[3], frame.0[4]];
 
-        if !self.validate_checksum(&frame) && ( pgn_tag == PGN_TAG_BB1ST.0 || pgn_tag == PGN_TAG_VERSION_INFO.0) {
+        if !self.validate_checksum(&frame)
+            && (pgn_tag == PGN_TAG_BB1ST.0 || pgn_tag == PGN_TAG_VERSION_INFO.0)
+        {
             error!("Checksum not valid for PGN tag: {:02X?}", pgn_tag);
             return TbsPg::Unknown;
         }
@@ -31,6 +35,8 @@ impl Decoder {
         match (pgn_tag, frame_len) {
             PGN_TAG_BB1ST => self.decode_bb1st(frame),
             PGN_TAG_VERSION_INFO => self.decode_version_info(frame),
+            PGN_TAG_HEARTBEAT => TbsPg::Heartbeat,
+            PGN_TAG_BB1DC => self.decode_bb1dc(frame),
             _ => TbsPg::Unknown,
         }
     }
@@ -75,6 +81,19 @@ impl Decoder {
             hardware_version: convert_version(hardware_version),
             bootloader_version: convert_version(bootloader_version),
             auxiliary_version: convert_version(auxiliary_version),
+        })
+    }
+
+    fn decode_bb1dc(&self, frame: Frame) -> TbsPg {
+        let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
+        let voltage = u16::from_le_bytes([frame.0[8], frame.0[9]]) as f32 * 0.01;
+        let current =
+            u32::from_le_bytes([frame.0[10], frame.0[11], frame.0[12], 0]) as f32 * 0.01 - 80000.0;
+        let temperature = frame.0[13] as f32 * 0.5 - 40.0;
+        TbsPg::Bb1dc(BasicQuantities {
+            voltage,
+            current,
+            temperature,
         })
     }
 }

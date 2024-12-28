@@ -37,15 +37,13 @@ async fn main() {
 
     while let Some(frame) = frames_rx.recv().await {
         let decoder = decoder::Decoder {};
-        match decoder.decode_frame(frame) {
-            protocol::TbsPg::Bb1st(status) => {
-                println!("Received BB1ST frame: {:?}", status);
-            }
-            protocol::TbsPg::VersionInfo(info) => {
-                println!("Received Version Info frame: {:?}", info);
+        let decoded = decoder.decode_frame(frame);
+        match decoded {
+            protocol::TbsPg::Unknown => {
+                println!("Received unknown frame");
             }
             _ => {
-                println!("Received unknown frame");
+                info!("Decoded frame: {:?}", decoded);
             }
         }
     }
