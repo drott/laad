@@ -1,15 +1,18 @@
 use crate::types::{Bytes, Frame};
+use regex::bytes::Regex;
 use tokio::sync::mpsc;
 use tracing::*;
 
+const MAX_BUFFERED_BYTES: usize = 1024;
+
 pub struct FrameParser {
-    opened_frame: Vec<u8>,
+    buffered_bytes: Vec<u8>,
 }
 
 impl FrameParser {
     pub fn new() -> Self {
         Self {
-            opened_frame: Vec::new(),
+            buffered_bytes: Vec::new(),
         }
     }
 
@@ -18,57 +21,43 @@ impl FrameParser {
             const START_BYTE: u8 = 0xaa;
             const END_BYTE: u8 = 0x99;
 
-            // TODO: Loop this to account for multiple frames in a single buffer.
-            let (mut start_byte_at, mut end_byte_at) = (None, None);
-            for (i, &byte) in bytes.0.iter().enumerate() {
-                if byte == START_BYTE {
-                    start_byte_at = Some(i);
-                }
-                if byte == END_BYTE {
-                    end_byte_at = Some(i);
+            self.buffered_bytes.extend_from_slice(&bytes.0);
+
+            // This is less efficient than it could be, because it restarts the search on previous
+            // packets, but it's simpler to understand to use regexes here.
+            let re = Regex::new(&format!(
+                r"(?-u)\x{:02X}(.*?)\x{:02X}",
+                START_BYTE, END_BYTE
+            ))
+            .unwrap();
+            let mut last_match_end = 0;
+            for cap in re.captures_iter(&self.buffered_bytes) {
+                if let Some(matched) = cap.get(0) {
+                    last_match_end = matched.end();
+                    if let Err(e) = tx
+                        .send(Frame(matched.as_bytes().to_vec().into_boxed_slice()))
+                        .await
+                    {
+                        error!("Failed to send frame: {:?}", e);
+                    }
                 }
             }
+            self.buffered_bytes.drain(..last_match_end);
+            debug!(
+                "Buffered bytes ({} bytes): {:?}",
+                self.buffered_bytes.len(),
+                self.buffered_bytes
+                    .iter()
+                    .map(|b| format!("0x{:02X}", b))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            );
 
-            match (self.opened_frame.is_empty(), start_byte_at, end_byte_at) {
-                (true, Some(start), Some(end)) if start < end => {
-                    if let Err(e) = tx
-                        .send(Frame(bytes.0[start..=end].to_vec().into_boxed_slice()))
-                        .await
-                    {
-                        error!("Failed to send frame: {:?}", e);
-                    }
-                }
-                (true, Some(start), Some(end)) if start > end => {
-                    error!("Invalid frame: start_byte_at > end_byte_at");
-                    self.opened_frame.clear();
-                }
-                (true, Some(start), None) => {
-                    self.opened_frame.extend_from_slice(&bytes.0[start..]);
-                }
-                (false, None, None) => {
-                    self.opened_frame.extend_from_slice(&bytes.0);
-                }
-                (false, None, Some(end)) => {
-                    self.opened_frame.extend_from_slice(&bytes.0[..=end]);
-                    if let Err(e) = tx
-                        .send(Frame(self.opened_frame.clone().into_boxed_slice()))
-                        .await
-                    {
-                        error!("Failed to send frame: {:?}", e);
-                    }
-                    self.opened_frame.clear();
-                }
-                (true, None, None) => {
-                    // No start or end byte in this buffer, skip packet.
-                }
-                _ => {
-                    error!(
-                        "Invalid frame state. opened_frame.is_empty: {}, start_byte_at: {:?}, end_byte_at: {:?}",
-                        self.opened_frame.is_empty(),
-                        start_byte_at,
-                        end_byte_at
-                    );
-                    self.opened_frame.clear();
+            if self.buffered_bytes.len() > MAX_BUFFERED_BYTES {
+                if let Some(pos) = self.buffered_bytes.iter().position(|&x| x == START_BYTE) {
+                    self.buffered_bytes.drain(..pos);
+                } else {
+                    self.buffered_bytes.clear();
                 }
             }
         }
