@@ -1,5 +1,7 @@
-use ble_peripheral_rust::uuid::ShortUuid;
-use uuid::Uuid;
+use ble_peripheral_rust::{
+    gatt::properties::{AttributePermission, CharacteristicProperty},
+    uuid::ShortUuid,
+};
 use ble_peripheral_rust::{
     gatt::{
         characteristic::Characteristic,
@@ -11,7 +13,13 @@ use ble_peripheral_rust::{
     Peripheral,
 };
 use tokio::sync::mpsc::channel;
+use uuid::Uuid;
+use tracing::{info,error,Level};
+use tracing_subscriber::FmtSubscriber;
 
+
+const SERVICE_UUID: u16 = 0x1234_u16;
+const TX_RX_CHARACTERISTIC_UUID: &str = "65333333-A115-11E2-9E9A-0800200CA102";
 
 async fn handle_events(mut receiver_rx: tokio::sync::mpsc::Receiver<PeripheralEvent>) {
     while let Some(event) = receiver_rx.recv().await {
@@ -49,30 +57,62 @@ async fn handle_events(mut receiver_rx: tokio::sync::mpsc::Receiver<PeripheralEv
     }
 }
 
-const SERVICE_UUID: u16 = 0x1800_u16;
+fn make_service() -> Service {
+    Service {
+        uuid: Uuid::from_short(SERVICE_UUID),
+        primary: true,
+        characteristics: vec![Characteristic {
+            uuid: <Uuid as ShortUuid>::from_string(TX_RX_CHARACTERISTIC_UUID),
+            properties: vec![
+                CharacteristicProperty::Read,
+                CharacteristicProperty::Write,
+                CharacteristicProperty::Notify,
+            ],
+            permissions: vec![
+                AttributePermission::Readable,
+                AttributePermission::Writeable,
+            ],
+            ..Default::default()
+        }],
+    }
+}
 
 #[tokio::main]
 async fn main() {
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::INFO)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    info!("Tracing initialized");
+
     let (sender_tx, receiver_rx) = channel::<PeripheralEvent>(256);
+
     let mut peripheral = Peripheral::new(sender_tx).await.unwrap();
-    while !peripheral.is_powered().await.unwrap() {}
-
-    peripheral
-        .add_service(&Service {
-            uuid: Uuid::from_short(SERVICE_UUID),
-            primary: true,
-            characteristics: vec![Characteristic {
-                uuid: <Uuid as ShortUuid>::from_string("65333333-A115-11E2-9E9A-0800200CA102"),
-                ..Default::default()
-            }],
-        })
-        .await;
-
-    peripheral
-        .start_advertising("TBS Battery Monitor", &[Uuid::from_short(SERVICE_UUID)])
-        .await;
-
     tokio::spawn(async move {
         handle_events(receiver_rx).await;
     });
+
+    while !peripheral.is_powered().await.unwrap() {}
+
+    let service = make_service();
+
+    if let Err(err) = peripheral.add_service(&service).await {
+        error!("Error adding service: {}", err);
+        return;
+    }
+    info!("Service Added");
+
+    if let Err(err) = peripheral
+        .start_advertising("TBS Battery Monitor", &[service.uuid])
+        .await
+    {
+        error!("Error starting advertising: {}", err);
+        return;
+    }
+    info!("Advertising Started");
+
+    loop {
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    }
 }
