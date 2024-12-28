@@ -31,7 +31,10 @@ impl FrameParser {
 
             match (self.opened_frame.is_empty(), start_byte_at, end_byte_at) {
                 (true, Some(start), Some(end)) if start < end => {
-                    if let Err(e) = tx.send(Frame(bytes.0[start..=end].to_vec())).await {
+                    if let Err(e) = tx
+                        .send(Frame(bytes.0[start..=end].to_vec().into_boxed_slice()))
+                        .await
+                    {
                         error!("Failed to send frame: {:?}", e);
                     }
                 }
@@ -47,7 +50,10 @@ impl FrameParser {
                 }
                 (false, None, Some(end)) => {
                     self.opened_frame.extend_from_slice(&bytes.0[..=end]);
-                    if let Err(e) = tx.send(Frame(self.opened_frame.clone())).await {
+                    if let Err(e) = tx
+                        .send(Frame(self.opened_frame.clone().into_boxed_slice()))
+                        .await
+                    {
                         error!("Failed to send frame: {:?}", e);
                     }
                     self.opened_frame.clear();

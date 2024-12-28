@@ -1,6 +1,8 @@
 use tokio::sync::mpsc;
 
+mod decoder;
 mod frames;
+mod protocol;
 mod random_sender;
 mod types;
 
@@ -25,6 +27,14 @@ async fn main() {
     });
 
     while let Some(frame) = frames_rx.recv().await {
-        println!("Received frame: {:?}", frame.to_string());
+        let decoder = decoder::Decoder {};
+        match decoder.decode_frame(frame) {
+            protocol::TbsPg::Bb1st(status) => {
+                println!("Received BB1ST frame: {:?}", status);
+            }
+            _ => {
+                println!("Received unknown frame");
+            }
+        }
     }
 }

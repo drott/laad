@@ -4,11 +4,12 @@ use std::fmt::{Display, Write};
 pub struct Bytes(pub Vec<u8>);
 
 #[derive(Debug)]
-pub struct Frame(pub Vec<u8>);
+pub struct Frame(pub Box<[u8]>);
 
 impl Display for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = self.0
+        let s = self
+            .0
             .iter()
             .fold(String::new(), |mut acc, &b| {
                 write!(acc, "{:02X} ", b).unwrap();
