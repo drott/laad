@@ -14,7 +14,7 @@ use ble_peripheral_rust::{
 };
 use tokio::sync::mpsc::channel;
 use tracing::{debug, error, info, Level};
-use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::{field::debug, FmtSubscriber};
 use uuid::Uuid;
 
 const SERVICE_UUID: &str = "65333333-A115-11E2-9E9A-0800200CA100";
@@ -120,5 +120,6 @@ async fn main() {
     loop {
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         send_update(&mut peripheral).await;
+        debug!("Sent update");
     }
 }
