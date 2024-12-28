@@ -36,6 +36,8 @@ async fn handle_events(mut receiver_rx: tokio::sync::mpsc::Receiver<PeripheralEv
                     response: RequestResponse::Success,
                 }) {
                     debug!("Failed to send ReadRequestResponse: {:?}", e);
+                } else {
+                    debug!("Demo packet sent.");
                 }
             }
             PeripheralEvent::WriteRequest {
