@@ -25,9 +25,7 @@ impl Decoder {
 
         let pgn_tag = [frame.0[3], frame.0[4]];
 
-        if !self.validate_checksum(&frame)
-            && (pgn_tag == PGN_TAG_BB1ST.0 || pgn_tag == PGN_TAG_VERSION_INFO.0)
-        {
+        if !self.validate_checksum(&frame) {
             error!("Checksum not valid for PGN tag: {:02X?}", pgn_tag);
             return TbsPg::Unknown;
         }
