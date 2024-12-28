@@ -17,4 +17,5 @@ path = "src_server/main.rs"
 
 [dependencies.ble-peripheral-rust]
 version = "0.1"
-uuid = "1.11.0"
+[dependencies.uuid]
+version = "1.11.0"

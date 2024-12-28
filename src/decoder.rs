@@ -3,7 +3,7 @@ use crate::{
     types::Frame,
 };
 
-use tracing::{error, info};
+use tracing::error;
 
 pub struct Decoder {}
 

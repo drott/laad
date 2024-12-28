@@ -1,4 +1,5 @@
-use uuid::*;
+use ble_peripheral_rust::uuid::ShortUuid;
+use uuid::Uuid;
 use ble_peripheral_rust::{
     gatt::{
         characteristic::Characteristic,
@@ -52,7 +53,7 @@ const SERVICE_UUID: u16 = 0x1800_u16;
 
 #[tokio::main]
 async fn main() {
-    let (sender_tx, mut receiver_rx) = channel::<PeripheralEvent>(256);
+    let (sender_tx, receiver_rx) = channel::<PeripheralEvent>(256);
     let mut peripheral = Peripheral::new(sender_tx).await.unwrap();
     while !peripheral.is_powered().await.unwrap() {}
 
@@ -61,7 +62,7 @@ async fn main() {
             uuid: Uuid::from_short(SERVICE_UUID),
             primary: true,
             characteristics: vec![Characteristic {
-                uuid: ShortUuid::from_string("65333333-A115-11E2-9E9A-0800200CA102"),
+                uuid: <Uuid as ShortUuid>::from_string("65333333-A115-11E2-9E9A-0800200CA102"),
                 ..Default::default()
             }],
         })
