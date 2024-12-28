@@ -8,7 +8,7 @@ mod types;
 
 use frames::FrameParser;
 use random_sender::RandomSender;
-use tracing::{info,debug,Level};
+use tracing::{debug, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
@@ -43,7 +43,7 @@ async fn main() {
                 debug!("Received unknown frame");
             }
             _ => {
-                info!("Decoded frame: {:?}",decoded);
+                info!("Decoded frame: {:?}", decoded);
             }
         }
     }

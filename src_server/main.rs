@@ -13,48 +13,40 @@ use ble_peripheral_rust::{
     Peripheral,
 };
 use tokio::sync::mpsc::channel;
-use uuid::Uuid;
-use tracing::{info,error,debug,Level};
+use tracing::{debug, error, info, Level};
 use tracing_subscriber::FmtSubscriber;
+use uuid::Uuid;
 
-
-const SERVICE_UUID: u16 = 0x1234_u16;
+const SERVICE_UUID: &str = "65333333-A115-11E2-9E9A-0800200CA100";
 const TX_RX_CHARACTERISTIC_UUID: &str = "65333333-A115-11E2-9E9A-0800200CA102";
-const DEMO_PACKET : &[u8] = &[
-    0xAA, 0x00, 0xFF, 0x1A, 0xF0, 0x08, 0xC0, 0xB0, 0x10, 0x27, 0x10, 0x27, 0xFD, 0xFF, 0x15,
-    0x99,
+const DEMO_PACKET: &[u8] = &[
+    0xAA, 0x00, 0xFF, 0x1A, 0xF0, 0x08, 0xC0, 0xB0, 0x10, 0x27, 0x10, 0x27, 0xFD, 0xFF, 0x15, 0x99,
 ];
 
 async fn handle_events(mut receiver_rx: tokio::sync::mpsc::Receiver<PeripheralEvent>) {
     while let Some(event) = receiver_rx.recv().await {
         match event {
-            PeripheralEvent::CharacteristicSubscriptionUpdate {
-                request,
-                subscribed,
-            } => {
+            PeripheralEvent::CharacteristicSubscriptionUpdate { .. } => {
                 // Send notifications to subscribed clients
             }
-            PeripheralEvent::ReadRequest {
-                request,
-                offset,
-                responder,
-            } => {
+            PeripheralEvent::ReadRequest { responder, .. } => {
                 // Respond to Read request
-                responder.send(ReadRequestResponse {
+                if let Err(e) = responder.send(ReadRequestResponse {
                     value: DEMO_PACKET.to_vec(),
                     response: RequestResponse::Success,
-                });
+                }) {
+                    debug!("Failed to send ReadRequestResponse: {:?}", e);
+                }
             }
             PeripheralEvent::WriteRequest {
-                request,
-                offset,
-                value,
-                responder,
+                value, responder, ..
             } => {
                 debug!("Received WriteRequest with value: {:X?}", value);
-                responder.send(WriteRequestResponse {
+                if let Err(e) = responder.send(WriteRequestResponse {
                     response: RequestResponse::Success,
-                });
+                }) {
+                    debug!("Failed to send WriteRequestResponse: {:?}", e);
+                }
             }
             _ => {}
         }
@@ -63,7 +55,7 @@ async fn handle_events(mut receiver_rx: tokio::sync::mpsc::Receiver<PeripheralEv
 
 fn make_service() -> Service {
     Service {
-        uuid: Uuid::from_short(SERVICE_UUID),
+        uuid: Uuid::from_string(SERVICE_UUID),
         primary: true,
         characteristics: vec![Characteristic {
             uuid: <Uuid as ShortUuid>::from_string(TX_RX_CHARACTERISTIC_UUID),
