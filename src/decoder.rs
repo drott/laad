@@ -7,7 +7,7 @@ use crate::{
     types::Frame,
 };
 
-use tracing::error;
+use tracing::{debug, error};
 
 pub struct Decoder {}
 
@@ -26,7 +26,7 @@ const PGN_TAG_BB3PC: (PgnTag, usize) = ([0x2D, 0xF0], 16);
 const PGN_TAG_BB3ST: (PgnTag, usize) = ([0x2E, 0xF0], 16);
 const PGN_TAG_BB3CS: (PgnTag, usize) = ([0x32, 0xF0], 16);
 
-const PGN_TAG_ADDRESS_CLAIMED: (PgnTag, usize) = ([0x00, 0xEE], 11);
+const PGN_TAG_ADDRESS_CLAIMED: (PgnTag, usize) = ([0x00, 0xEE], 16);
 const PGN_TAG_VERSION_INFO: (PgnTag, usize) = ([0x02, 0xF0], 16);
 const PGN_TAG_HEARTBEAT: (PgnTag, usize) = ([0xFF, 0xFF], 8);
 
@@ -46,9 +46,19 @@ impl Decoder {
         }
 
         let pgn_tag = [frame.0[3], frame.0[4]];
+        let checksum = frame.0[frame.0.len() - 2];
+        let calculated_checksum = self.calculate_checksum(&frame);
 
-        if !self.validate_checksum(&frame) {
-            error!("Checksum not valid for PGN tag: {:02X?}", pgn_tag);
+        if let Some(calculated_checksum) = calculated_checksum {
+            if checksum != calculated_checksum {
+                debug!(
+                    "Checksum not valid for PGN tag: {:02X?}, 0x{:02X?} vs 0x{:02X}?",
+                    pgn_tag, checksum, calculated_checksum
+                );
+                return TbsPg::Unknown;
+            }
+        } else {
+            error!("Failed to calculate checksum for PGN tag: {:02X?}", pgn_tag);
             return TbsPg::Unknown;
         }
 
@@ -72,15 +82,14 @@ impl Decoder {
         }
     }
 
-    fn validate_checksum(&self, frame: &Frame) -> bool {
+    fn calculate_checksum(&self, frame: &Frame) -> Option<u8> {
         if frame.0.len() < 8 {
-            return false;
+            return None;
         }
-        let checksum = frame.0[frame.0.len() - 2];
         let sum: u8 = frame.0[1..frame.0.len() - 2]
             .iter()
             .fold(0, |acc, &b| acc.wrapping_add(b));
-        sum.wrapping_neg() == checksum
+        Some(sum.wrapping_neg())
     }
 
     fn decode_bbst(&self, bank_id: BankId, frame: Frame) -> TbsPg {
@@ -91,7 +100,7 @@ impl Decoder {
         } else if soc == 65533 {
             StateOfCharge::Initializing
         } else {
-            StateOfCharge::ChargePercentage(soc as f32)
+            StateOfCharge::ChargePercentage(soc as f32 / 100.0)
         };
         let soh = u16::from_le_bytes([frame.0[10], frame.0[11]]);
         let soh = if soh == 65535 {
@@ -99,7 +108,7 @@ impl Decoder {
         } else if soh == 65533 {
             StateOfHealth::Initializing
         } else {
-            StateOfHealth::HealthPercentage(soh as f32)
+            StateOfHealth::HealthPercentage(soh as f32 / 100.0)
         };
         let time_remaining = u16::from_le_bytes([frame.0[12], frame.0[13]]);
         let time_remaining = if time_remaining == 65535 {
@@ -232,25 +241,26 @@ impl Decoder {
     }
 
     fn decode_address_claimed(&self, frame: Frame) -> TbsPg {
-        let device_id = u16::from_le_bytes([frame.0[6], frame.0[7]]);
+        debug!("Address claimed frame: {:?}", frame);
+        let device_id = u16::from_le_bytes([frame.0[12], frame.0[13]]);
         let device_id = if device_id != 0x0A24 {
             error!("Unknown device ID: {:04X}", device_id);
             DeviceId::Unknown
         } else {
             DeviceId::ExpertModular
         };
-        let brand_id = frame.0[8];
+        let brand_id = frame.0[11];
         let brand_id = if brand_id != 0x32 {
             error!("Unknown brand ID: {:02X}", brand_id);
             BrandId::Unknown
         } else {
             BrandId::TbsElectronics
         };
-        let serial = u32::from_le_bytes([frame.0[10], frame.0[11], frame.0[12], frame.0[13]]);
+        let serial = u32::from_le_bytes([frame.0[6], frame.0[7], frame.0[8], frame.0[9]]);
         TbsPg::AddressClaimed(AddressClaimed {
             device_id,
             brand_id,
-            serial_number: serial,
+            serial_number: serial.wrapping_neg(),
         })
     }
 }

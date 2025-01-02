@@ -35,7 +35,11 @@ impl BleReceiver {
             .find(|c| c.uuid == TX_RX_CHARACTERISTIC_UUID)
             .unwrap();
         if let Err(err) = peripheral
-            .write(&characteristic, &REQUEST_FOR_ADDRESS_CLAIMED, WriteType::WithoutResponse)
+            .write(
+                &characteristic,
+                &REQUEST_FOR_ADDRESS_CLAIMED,
+                WriteType::WithoutResponse,
+            )
             .await
         {
             error!("Error sending REQUEST_FOR_ADDRESS_CLAIMED: {:?}", err);
@@ -45,7 +49,11 @@ impl BleReceiver {
         time::sleep(Duration::from_secs(3)).await;
         loop {
             if let Err(err) = peripheral
-                .write(&characteristic, &SEND_ALL_COMMAND, WriteType::WithoutResponse)
+                .write(
+                    &characteristic,
+                    &SEND_ALL_COMMAND,
+                    WriteType::WithoutResponse,
+                )
                 .await
             {
                 error!("Error sending SEND_ALL_COMMAND: {:?}", err);

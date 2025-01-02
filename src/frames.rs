@@ -26,12 +26,12 @@ impl FrameParser {
             // This is less efficient than it could be, because it restarts the search on previous
             // packets, but it's simpler to understand to use regexes here.
             let re = Regex::new(&format!(
-                r"(?-u)\x{:02X}(.*?)\x{:02X}",
+                r"(?s-u)\x{:02X}(.*?)\x{:02X}",
                 START_BYTE, END_BYTE
             ))
             .unwrap();
             let mut last_match_end = 0;
-            for cap in re.captures_iter(&self.buffered_bytes) {
+            for cap in re.captures_iter(self.buffered_bytes.as_slice()) {
                 if let Some(matched) = cap.get(0) {
                     last_match_end = matched.end();
                     if let Err(e) = tx

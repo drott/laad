@@ -38,23 +38,22 @@ pub struct ChargeState {
     pub indicator_100: IndicatorState,
 }
 
-
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub enum RemainingTime {
     Minutes(u16),
     Charging,
     #[default]
-    Unavailable
+    Unavailable,
 }
 
 #[derive(Debug, Default)]
 #[allow(dead_code)]
-pub enum StateOfHealth { 
+pub enum StateOfHealth {
     HealthPercentage(f32),
     #[default]
     Unavailable,
-    Initializing
+    Initializing,
 }
 
 #[derive(Debug, Default)]
@@ -63,7 +62,7 @@ pub enum StateOfCharge {
     ChargePercentage(f32),
     #[default]
     Unavailable,
-    Initializing
+    Initializing,
 }
 
 #[derive(Debug, Default)]
@@ -107,7 +106,7 @@ pub struct PowerAndCharge {
     // in W.
     pub power: f32,
     // in Ah.
-    pub consumed_amp_hours : f32,
+    pub consumed_amp_hours: f32,
 }
 
 #[derive(Debug, Default)]
@@ -115,7 +114,7 @@ pub struct PowerAndCharge {
 pub enum DeviceId {
     ExpertModular = 0x0A24,
     #[default]
-    Unknown
+    Unknown,
 }
 
 #[derive(Debug, Default)]
@@ -123,9 +122,8 @@ pub enum DeviceId {
 pub enum BrandId {
     TbsElectronics = 0x32,
     #[default]
-    Unknown
+    Unknown,
 }
-
 
 #[derive(Debug)]
 #[allow(dead_code)]
