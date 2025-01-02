@@ -1,5 +1,7 @@
 use crate::{
-    protocol::{BankStatus, BasicQuantities, TbsPg, Version, VersionInfo},
+    protocol::{
+        BankStatus, BasicQuantities, ChargeStage, ChargeState, IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg, Version, VersionInfo
+    },
     types::Frame,
 };
 
@@ -9,14 +11,31 @@ pub struct Decoder {}
 
 type PgnTag = [u8; 2];
 
+const PGN_TAG_BB1DC: (PgnTag, usize) = ([0x18, 0xF0], 16);
+const PGN_TAG_BB1PC: (PgnTag, usize) = ([0x19, 0xF0], 16);
 const PGN_TAG_BB1ST: (PgnTag, usize) = ([0x1A, 0xF0], 16);
+const PGN_TAG_BB1CS: (PgnTag, usize) = ([0x1E, 0xF0], 16);
+const PGN_TAG_BB2DC: (PgnTag, usize) = ([0x22, 0xF0], 16);
+const PGN_TAG_BB2PC: (PgnTag, usize) = ([0x23, 0xF0], 16);
+const PGN_TAG_BB2ST: (PgnTag, usize) = ([0x24, 0xF0], 16);
+const PGN_TAG_BB2CS: (PgnTag, usize) = ([0x28, 0xF0], 16);
+const PGN_TAG_BB3DC: (PgnTag, usize) = ([0x2C, 0xF0], 16);
+const PGN_TAG_BB3PC: (PgnTag, usize) = ([0x2D, 0xF0], 16);
+const PGN_TAG_BB3ST: (PgnTag, usize) = ([0x2E, 0xF0], 16);
+const PGN_TAG_BB3CS: (PgnTag, usize) = ([0x32, 0xF0], 16);
+
 const PGN_TAG_VERSION_INFO: (PgnTag, usize) = ([0x02, 0xF0], 16);
 const PGN_TAG_HEARTBEAT: (PgnTag, usize) = ([0xFF, 0xFF], 8);
-const PGN_TAG_BB1DC: (PgnTag, usize) = ([0x18, 0xF0], 16);
+
+enum BankId {
+    Bank1,
+    Bank2,
+    Bank3,
+}
 
 impl Decoder {
     pub fn decode_frame(&self, frame: Frame) -> TbsPg {
-        // TODO: Byte stuff, check checksum.
+        // TODO: Byte stuff.
 
         let frame_len = frame.0.len();
         if frame_len < 8 {
@@ -31,10 +50,21 @@ impl Decoder {
         }
 
         match (pgn_tag, frame_len) {
-            PGN_TAG_BB1ST => self.decode_bb1st(frame),
+            PGN_TAG_BB1ST => self.decode_bbst(BankId::Bank1, frame),
+            PGN_TAG_BB2ST => self.decode_bbst(BankId::Bank2, frame),
+            PGN_TAG_BB3ST => self.decode_bbst(BankId::Bank3, frame),
             PGN_TAG_VERSION_INFO => self.decode_version_info(frame),
             PGN_TAG_HEARTBEAT => TbsPg::Heartbeat,
-            PGN_TAG_BB1DC => self.decode_bb1dc(frame),
+            PGN_TAG_BB1DC => self.decode_bbdc(BankId::Bank1, frame),
+            PGN_TAG_BB2DC => self.decode_bbdc(BankId::Bank2, frame),
+            PGN_TAG_BB3DC => self.decode_bbdc(BankId::Bank3, frame),
+            PGN_TAG_BB1PC => self.decode_bbpc(BankId::Bank1, frame),
+            PGN_TAG_BB2PC => self.decode_bbpc(BankId::Bank2, frame),
+            PGN_TAG_BB3PC => self.decode_bbpc(BankId::Bank3, frame),
+            PGN_TAG_BB1CS => self.decode_bbcs(BankId::Bank1, &frame),
+            PGN_TAG_BB2CS => self.decode_bbcs(BankId::Bank2, &frame),
+            PGN_TAG_BB3CS => self.decode_bbcs(BankId::Bank3, &frame),
+
             _ => TbsPg::Unknown,
         }
     }
@@ -50,15 +80,103 @@ impl Decoder {
         sum.wrapping_neg() == checksum
     }
 
-    fn decode_bb1st(&self, frame: Frame) -> TbsPg {
+    fn decode_bbst(&self, bank_id: BankId, frame: Frame) -> TbsPg {
         let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
-        let soc: f32 = u16::from_le_bytes([frame.0[8], frame.0[9]]) as f32 * 0.01;
-        let soh: f32 = u16::from_le_bytes([frame.0[10], frame.0[11]]) as f32 * 0.01;
-        let _time_remaining = u16::from_le_bytes([frame.0[12], frame.0[13]]);
-        TbsPg::Bb1st(BankStatus {
+        let soc = u16::from_le_bytes([frame.0[8], frame.0[9]]);
+        let soc = if soc == 65535 {
+            StateOfCharge::Unavailable
+        } else if soc == 65533 {
+            StateOfCharge::Initializing
+        } else {
+            StateOfCharge::ChargePercentage(soc as f32)
+        };
+        let soh = u16::from_le_bytes([frame.0[10], frame.0[11]]);
+        let soh = if soh == 65535 {
+            StateOfHealth::Unavailable
+        } else if soh == 65533 {
+            StateOfHealth::Initializing
+        } else {
+            StateOfHealth::HealthPercentage(soh as f32)
+        };
+        let time_remaining = u16::from_le_bytes([frame.0[12], frame.0[13]]);
+        let time_remaining = if time_remaining == 65535 {
+            RemainingTime::Unavailable
+        } else if time_remaining == 65533 {
+            RemainingTime::Charging
+        } else {
+            RemainingTime::Minutes(time_remaining)
+        };
+        let bank_status = BankStatus {
             state_of_charge: soc,
             state_of_health: soh,
-        })
+            time_remaining,
+        };
+        match bank_id {
+            BankId::Bank1 => TbsPg::Bb1st(bank_status),
+            BankId::Bank2 => TbsPg::Bb2st(bank_status),
+            BankId::Bank3 => TbsPg::Bb3st(bank_status),
+        }
+    }
+
+    fn decode_bbcs(&self, bank_id: BankId, frame: &Frame) -> TbsPg {
+        let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
+        let charge_state = frame.0[8];
+        let charge_stage = match charge_state {
+            1 => ChargeStage::SoftStart,
+            2 => ChargeStage::Bulk,
+            3 => ChargeStage::ExtendedBulk,
+            4 => ChargeStage::Absorption,
+            6 => ChargeStage::Analyze,
+            8 => ChargeStage::Float,
+            9 => ChargeStage::Pulse,
+            11 => ChargeStage::Equalize,
+            13 => ChargeStage::Stop,
+            15 => ChargeStage::Error,
+            255 => ChargeStage::Unavailable,
+            _ => ChargeStage::Unknown,
+        };
+        let indicator_flags = frame.0[9];
+        fn bits_to_indicator_state(bits: u8) -> IndicatorState {
+            match bits {
+                0 => IndicatorState::Off,
+                1 => IndicatorState::On,
+                2 => IndicatorState::Blinking,
+                3 => IndicatorState::NotAvailable,
+                _ => IndicatorState::NotAvailable,
+            }
+        }
+        let indicator_0_49 = bits_to_indicator_state(indicator_flags & 0b11);
+        let indicator_50_79 = bits_to_indicator_state((indicator_flags >> 2) & 0b11);
+        let indicator_80_99 = bits_to_indicator_state((indicator_flags >> 4) & 0b11);
+        let indicator_100 = bits_to_indicator_state((indicator_flags >> 6) & 0b11);
+        let charge_state = ChargeState {
+            stage: charge_stage,
+            indicator_0_49,
+            indicator_50_79,
+            indicator_80_99,
+            indicator_100,
+        };
+
+        match bank_id {
+            BankId::Bank1 => TbsPg::Bb1cs(charge_state),
+            BankId::Bank2 => TbsPg::Bb2cs(charge_state),
+            BankId::Bank3 => TbsPg::Bb3cs(charge_state),
+        }
+    }
+
+    fn decode_bbpc(&self, bank_id: BankId, frame: Frame) -> TbsPg {
+        let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
+        let power = u16::from_le_bytes([frame.0[8], frame.0[9]]) as f32 * 0.1 - 80000.0;
+        let charge = u16::from_le_bytes([frame.0[10], frame.0[11]]) as f32 * 0.01 - 80000.0;
+        let power_and_charge = PowerAndCharge {
+            power,
+            consumed_amp_hours: charge,
+        };
+        match bank_id {
+            BankId::Bank1 => TbsPg::Bb1pc(power_and_charge),
+            BankId::Bank2 => TbsPg::Bb2pc(power_and_charge),
+            BankId::Bank3 => TbsPg::Bb3pc(power_and_charge),
+        }
     }
 
     fn decode_version_info(&self, frame: Frame) -> TbsPg {
@@ -82,7 +200,7 @@ impl Decoder {
         })
     }
 
-    fn decode_bb1dc(&self, frame: Frame) -> TbsPg {
+    fn decode_bbdc(&self, bank: BankId, frame: Frame) -> TbsPg {
         let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
         let voltage = u16::from_le_bytes([frame.0[8], frame.0[9]]) as f32 * 0.01;
         let current = if frame.0[10..13] == [0xFF, 0xFF, 0xFF] {
@@ -93,15 +211,20 @@ impl Decoder {
                     - 80000.0,
             )
         };
-        let temperature = if frame.0[13] == 0xFF {
+        let temperature = if frame.0[13] == 0xFE {
             None
         } else {
             Some(frame.0[13] as f32 * 0.5 - 40.0)
         };
-        TbsPg::Bb1dc(BasicQuantities {
+        let quantities = BasicQuantities {
             voltage,
             current,
             temperature,
-        })
+        };
+        match bank {
+            BankId::Bank1 => TbsPg::Bb1dc(quantities),
+            BankId::Bank2 => TbsPg::Bb2dc(quantities),
+            BankId::Bank3 => TbsPg::Bb3dc(quantities),
+        }
     }
 }
