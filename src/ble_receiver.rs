@@ -1,5 +1,5 @@
 use crate::types::Bytes;
-use btleplug::api::{Central, CharPropFlags, Manager as _, Peripheral, ScanFilter};
+use btleplug::api::{Central, CharPropFlags, Manager as _, Peripheral, ScanFilter, WriteType};
 use btleplug::platform::Manager;
 use futures::StreamExt;
 use std::error::Error;
@@ -26,6 +26,34 @@ const SEND_ALL_COMMAND: [u8; 16] = [
 impl BleReceiver {
     pub fn new(tx: mpsc::Sender<Bytes>) -> Self {
         Self { tx }
+    }
+
+    async fn send_requests(peripheral: &impl Peripheral) {
+        let characteristic = peripheral
+            .characteristics()
+            .into_iter()
+            .find(|c| c.uuid == TX_RX_CHARACTERISTIC_UUID)
+            .unwrap();
+        if let Err(err) = peripheral
+            .write(&characteristic, &REQUEST_FOR_ADDRESS_CLAIMED, WriteType::WithoutResponse)
+            .await
+        {
+            error!("Error sending REQUEST_FOR_ADDRESS_CLAIMED: {:?}", err);
+        } else {
+            debug!("Sent REQUEST_FOR_ADDRESS_CLAIMED");
+        }
+        time::sleep(Duration::from_secs(3)).await;
+        loop {
+            if let Err(err) = peripheral
+                .write(&characteristic, &SEND_ALL_COMMAND, WriteType::WithoutResponse)
+                .await
+            {
+                error!("Error sending SEND_ALL_COMMAND: {:?}", err);
+            } else {
+                debug!("Sent SEND_ALL_COMMAND");
+            }
+            time::sleep(Duration::from_secs(10)).await;
+        }
     }
 
     async fn connect_notify() -> Result<btleplug::platform::Peripheral, Box<dyn Error>> {
@@ -121,36 +149,7 @@ impl BleReceiver {
 
         let peripheral_clone = peripheral.clone();
         tokio::spawn(async move {
-            time::sleep(Duration::from_secs(5)).await;
-            let characteristic = peripheral_clone.characteristics().into_iter().find(|c| c.uuid == TX_RX_CHARACTERISTIC_UUID).unwrap();
-            if let Err(err) = peripheral_clone
-                .write(
-                    &characteristic,
-                    &REQUEST_FOR_ADDRESS_CLAIMED,
-                    btleplug::api::WriteType::WithoutResponse,
-                )
-                .await
-            {
-                error!("Error sending REQUEST_FOR_ADDRESS_CLAIMED: {:?}", err);
-            } else {
-                debug!("Sent REQUEST_FOR_ADDRESS_CLAIMED");
-            }
-            time::sleep(Duration::from_secs(3)).await;
-            loop {
-                if let Err(err) = peripheral_clone
-                    .write(
-                        &characteristic,
-                        &SEND_ALL_COMMAND,
-                        btleplug::api::WriteType::WithoutResponse,
-                    )
-                    .await
-                {
-                    error!("Error sending SEND_ALL_COMMAND: {:?}", err);
-                } else {
-                    debug!("Sent SEND_ALL_COMMAND");
-                }
-                time::sleep(Duration::from_secs(1)).await;
-            }
+            Self::send_requests(&peripheral_clone).await;
         });
 
         while let Some(notification) = notification_stream.next().await {

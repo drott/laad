@@ -1,6 +1,8 @@
 use crate::{
     protocol::{
-        BankStatus, BasicQuantities, ChargeStage, ChargeState, IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg, Version, VersionInfo
+        AddressClaimed, BankStatus, BasicQuantities, BrandId, ChargeStage, ChargeState, DeviceId,
+        IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg,
+        Version, VersionInfo,
     },
     types::Frame,
 };
@@ -24,6 +26,7 @@ const PGN_TAG_BB3PC: (PgnTag, usize) = ([0x2D, 0xF0], 16);
 const PGN_TAG_BB3ST: (PgnTag, usize) = ([0x2E, 0xF0], 16);
 const PGN_TAG_BB3CS: (PgnTag, usize) = ([0x32, 0xF0], 16);
 
+const PGN_TAG_ADDRESS_CLAIMED: (PgnTag, usize) = ([0x00, 0xEE], 11);
 const PGN_TAG_VERSION_INFO: (PgnTag, usize) = ([0x02, 0xF0], 16);
 const PGN_TAG_HEARTBEAT: (PgnTag, usize) = ([0xFF, 0xFF], 8);
 
@@ -64,7 +67,7 @@ impl Decoder {
             PGN_TAG_BB1CS => self.decode_bbcs(BankId::Bank1, &frame),
             PGN_TAG_BB2CS => self.decode_bbcs(BankId::Bank2, &frame),
             PGN_TAG_BB3CS => self.decode_bbcs(BankId::Bank3, &frame),
-
+            PGN_TAG_ADDRESS_CLAIMED => self.decode_address_claimed(frame),
             _ => TbsPg::Unknown,
         }
     }
@@ -226,5 +229,28 @@ impl Decoder {
             BankId::Bank2 => TbsPg::Bb2dc(quantities),
             BankId::Bank3 => TbsPg::Bb3dc(quantities),
         }
+    }
+
+    fn decode_address_claimed(&self, frame: Frame) -> TbsPg {
+        let device_id = u16::from_le_bytes([frame.0[6], frame.0[7]]);
+        let device_id = if device_id != 0x0A24 {
+            error!("Unknown device ID: {:04X}", device_id);
+            DeviceId::Unknown
+        } else {
+            DeviceId::ExpertModular
+        };
+        let brand_id = frame.0[8];
+        let brand_id = if brand_id != 0x32 {
+            error!("Unknown brand ID: {:02X}", brand_id);
+            BrandId::Unknown
+        } else {
+            BrandId::TbsElectronics
+        };
+        let serial = u32::from_le_bytes([frame.0[10], frame.0[11], frame.0[12], frame.0[13]]);
+        TbsPg::AddressClaimed(AddressClaimed {
+            device_id,
+            brand_id,
+            serial_number: serial,
+        })
     }
 }

@@ -110,6 +110,31 @@ pub struct PowerAndCharge {
     pub consumed_amp_hours : f32,
 }
 
+#[derive(Debug, Default)]
+#[allow(dead_code)]
+pub enum DeviceId {
+    ExpertModular = 0x0A24,
+    #[default]
+    Unknown
+}
+
+#[derive(Debug, Default)]
+#[allow(dead_code)]
+pub enum BrandId {
+    TbsElectronics = 0x32,
+    #[default]
+    Unknown
+}
+
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct AddressClaimed {
+    pub device_id: DeviceId,
+    pub brand_id: BrandId,
+    pub serial_number: u32,
+}
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum TbsPg {
@@ -125,6 +150,7 @@ pub enum TbsPg {
     Bb1cs(ChargeState),
     Bb2cs(ChargeState),
     Bb3cs(ChargeState),
+    AddressClaimed(AddressClaimed),
     VersionInfo(VersionInfo),
     Heartbeat,
     Unknown,
