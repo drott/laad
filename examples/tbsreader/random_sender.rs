@@ -2,7 +2,7 @@ use rand::prelude::SliceRandom;
 use rand::Rng;
 use tokio::sync::mpsc;
 
-use crate::types::Bytes;
+use tbslib::types::Bytes;
 
 const EXAMPLE_PACKETS: &[&[u8]] = &[
     &[0xAA, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x03, 0x99], // [HRTBT]
@@ -75,7 +75,7 @@ impl RandomSender {
                 rand::thread_rng().gen_range(WORKING_BUFFER_SIZE * 40 / 100..=WORKING_BUFFER_SIZE);
             let bytes: Vec<u8> = self.buffer.drain(..chunk_size).collect();
             self.tx
-                .send(crate::types::Bytes(bytes))
+                .send(Bytes(bytes))
                 .await
                 .expect("Failed to send bytes");
             // tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;

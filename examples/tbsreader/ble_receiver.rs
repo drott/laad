@@ -1,4 +1,4 @@
-use crate::types::Bytes;
+use tbslib::types::Bytes;
 use btleplug::api::{Central, CharPropFlags, Manager as _, Peripheral, ScanFilter, WriteType};
 use btleplug::platform::Manager;
 use futures::StreamExt;

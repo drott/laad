@@ -5,18 +5,18 @@ use ble_receiver::BleReceiver;
 use tokio::sync::mpsc;
 
 mod ble_receiver;
-mod decoder;
-mod frames;
-mod protocol;
 mod random_sender;
 mod replay_sender;
-mod types;
 
-use frames::FrameParser;
+use tbslib::{
+    frames::FrameParser,
+    types::Bytes,
+    decoder,
+    protocol::TbsPg,
+};
 use random_sender::RandomSender;
-use tracing::{debug, error, info, Level};
+use tracing::{ error, info, Level};
 use tracing_subscriber::FmtSubscriber;
-use types::Bytes;
 
 fn configure_and_run_source(bytes_tx: Sender<Bytes>) {
     let matches = clap::Command::new("tbslib")
@@ -78,7 +78,7 @@ async fn main() {
         let decoder = decoder::Decoder {};
         let decoded = decoder.decode_frame(frame);
         match decoded {
-            protocol::TbsPg::Unknown => {
+            TbsPg::Unknown => {
                 error!("Received unknown frame");
             }
             _ => {

@@ -3,22 +3,24 @@ name = "tbslib"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/mod.rs"
+
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
-rand = { version = "0.8", features = ["small_rng"] }
 tracing = "0.1"
 tracing-subscriber = "0.3.19"
 regex = "1.11.1"
-btleplug = "0.11.7"
 futures = "0.3.31"
+
+[dev-dependencies]
+btleplug = "0.11.7" 
+rand = { version = "0.8", features = [ "small_rng" ] }
 clap = "4.5.23"
+ble-peripheral-rust = "0.1"
+uuid = "1.11.0"
 
-[[bin]]
-name = "server"
-path = "src_server/main.rs"
-
-[dependencies.ble-peripheral-rust]
-version = "0.1"
-[dependencies.uuid]
-version = "1.11.0"
+[[example]]
+name = "tbsreader"
+path = "examples/tbsreader/main.rs"

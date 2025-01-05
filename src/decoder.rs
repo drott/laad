@@ -9,7 +9,7 @@ use crate::{
     types::Frame,
 };
 
-use tracing::{debug, error};
+use tracing::error;
 
 pub struct Decoder {}
 

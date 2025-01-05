@@ -2,7 +2,7 @@ use std::io::BufRead;
 
 use tokio::sync::mpsc;
 
-use crate::types::Bytes;
+use tbslib::types::Bytes;
 
 pub struct ReplaySender {
     tx: mpsc::Sender<Bytes>,
@@ -38,7 +38,7 @@ impl ReplaySender {
                 .map(|i| u8::from_str_radix(&line[i..i + 2], 16).expect("Failed to decode hex"))
                 .collect::<Vec<u8>>();
             self.tx
-                .send(crate::types::Bytes(bytes))
+                .send(Bytes(bytes))
                 .await
                 .expect("Failed to send bytes");
             // tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
