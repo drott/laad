@@ -304,7 +304,8 @@ impl Decoder {
 
     fn decode_bbbs(&self, bank: BankId, frame: Frame) -> TbsPg {
         let flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
-        let bank_enable = match flags & 0x02 {
+        error!("Flags: {:016b}", flags);
+        let bank_enable = match flags & 0b11 {
             0 => BankEnable::Disabled,
             1 => BankEnable::Enabled,
             _ => BankEnable::ParameterUnavailable,

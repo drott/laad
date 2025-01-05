@@ -1,4 +1,3 @@
-
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 #[repr(u8)]
@@ -142,11 +141,11 @@ pub struct AddressClaimed {
     pub serial_number: u32,
 }
 
-#[derive(Debug,Default)]
+#[derive(Debug, Default)]
 #[allow(dead_code)]
 pub enum BankEnable {
     Disabled = 0,
-    Enabled = 1,    
+    Enabled = 1,
     #[default]
     ParameterUnavailable,
 }
@@ -199,7 +198,6 @@ pub enum BatteryType {
     ParameterNotAvailable = 65535,
 }
 
-
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct BasicSetup {
@@ -208,7 +206,6 @@ pub struct BasicSetup {
     pub bank_capacity: BankCapacity,
     pub battery_type: BatteryType,
 }
-
 
 #[derive(Debug)]
 #[allow(dead_code)]
