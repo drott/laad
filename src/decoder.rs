@@ -2,8 +2,9 @@ use crate::{
     protocol::{
         Acknowledgement, AcknowledgementType, AddressClaimed, BankCapacity, BankEnable, BankName,
         BankStatus, BasicQuantities, BasicSetup, BatteryType, BrandId, ChargeStage, ChargeState,
-        DeviceId, IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth,
-        TbsPg, Temperature, Version, VersionInfo,
+        DeviceId, DeviceName, IndicatorState, InstallerLock, OperatingMode, OperatingModeStatus,
+        PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg, Temperature, Version,
+        VersionInfo,
     },
     types::Frame,
 };
@@ -34,6 +35,8 @@ const PGN_TAG_ADDRESS_CLAIMED: (PgnTag, usize) = ([0x00, 0xEE], 16);
 const PGN_TAG_VERSION_INFO: (PgnTag, usize) = ([0x02, 0xF0], 16);
 const PGN_TAG_HEARTBEAT: (PgnTag, usize) = ([0xFF, 0xFF], 8);
 const PGN_TAG_ACKNOWLEDGEMENT: (PgnTag, usize) = ([0x00, 0xe8], 16);
+const PGN_TAG_DEVICE_NAME: (PgnTag, usize) = ([0x00, 0xF0], 40);
+const PGN_TAG_OPERATION_MODE: (PgnTag, usize) = ([0x0E, 0xF0], 16);
 
 enum BankId {
     Bank1,
@@ -120,6 +123,8 @@ impl Decoder {
             PGN_TAG_BB3BS => self.decode_bbbs(BankId::Bank3, frame),
             PGN_TAG_ADDRESS_CLAIMED => self.decode_address_claimed(frame),
             PGN_TAG_ACKNOWLEDGEMENT => self.decode_acknowledgement(frame),
+            PGN_TAG_DEVICE_NAME => self.decode_device_name(frame),
+            PGN_TAG_OPERATION_MODE => self.decode_operating_mode(frame),
             _ => {
                 error!("Unknown PGN tag: {:02X?}", pgn_tag);
                 TbsPg::Unknown
@@ -373,5 +378,35 @@ impl Decoder {
         };
         let pgn = u16::from_le_bytes([frame.0[12], frame.0[13]]);
         TbsPg::Acknowledgement(Acknowledgement { ack_type, pgn })
+    }
+
+    fn decode_device_name(&self, frame: Frame) -> TbsPg {
+        let mut name = [0; 32];
+        name.copy_from_slice(&frame.0[6..38]);
+        TbsPg::DeviceName(DeviceName { name })
+    }
+
+    fn decode_operating_mode(&self, frame: Frame) -> TbsPg {
+        let mode = frame.0[6];
+        let mode = match mode {
+            0 => OperatingMode::DeviceOff,
+            1 => OperatingMode::DeviceBooting,
+            2 => OperatingMode::DeviceWaitingForSlaves,
+            3 => OperatingMode::DeviceWaitingForMaster,
+            10 => OperatingMode::DeviceOn,
+            11 => OperatingMode::DeviceOnNightMode,
+            127 => OperatingMode::DeviceInError,
+            _ => OperatingMode::ParameterNotAvailable,
+        };
+        let lock_flag = u16::from_le_bytes([frame.0[8], frame.0[9]]) >> 14;
+        let installer_lock = match lock_flag {
+            0 => InstallerLock::InstallerLockOff,
+            1 => InstallerLock::InstallerLockOn,
+            _ => InstallerLock::ParameterNotAvailable,
+        };
+        TbsPg::OperatingModeStatus(OperatingModeStatus {
+            mode,
+            installer_lock,
+        })
     }
 }

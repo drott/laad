@@ -232,6 +232,50 @@ impl std::fmt::Debug for Acknowledgement {
     }
 }
 
+#[allow(dead_code)]
+pub struct DeviceName {
+    pub name: [u8; 32],
+}
+
+impl std::fmt::Debug for DeviceName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let null_terminated_name = std::str::from_utf8(&self.name)
+            .unwrap_or("")
+            .trim_end_matches('\0');
+        f.debug_struct("DeviceName")
+            .field("name", &null_terminated_name)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum OperatingMode {
+    DeviceOff = 0,
+    DeviceBooting = 1,
+    DeviceWaitingForSlaves = 2,
+    DeviceWaitingForMaster = 3,
+    DeviceOn = 10,
+    DeviceOnNightMode = 11,
+    DeviceInError = 127,
+    ParameterNotAvailable = 255,
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum InstallerLock {
+    InstallerLockOff = 0,
+    InstallerLockOn = 1,
+    ParameterNotAvailable,
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct OperatingModeStatus {
+    pub mode: OperatingMode,
+    pub installer_lock: InstallerLock,
+}
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum TbsPg {
@@ -254,5 +298,7 @@ pub enum TbsPg {
     VersionInfo(VersionInfo),
     Heartbeat,
     Acknowledgement(Acknowledgement),
+    DeviceName(DeviceName),
+    OperatingModeStatus(OperatingModeStatus),
     Unknown,
 }
