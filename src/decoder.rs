@@ -1,9 +1,9 @@
 use crate::{
     protocol::{
-        AddressClaimed, BankCapacity, BankEnable, BankName, BankStatus, BasicQuantities,
-        BasicSetup, BatteryType, BrandId, ChargeStage, ChargeState, DeviceId, IndicatorState,
-        PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg, Temperature, Version,
-        VersionInfo,
+        Acknowledgement, AcknowledgementType, AddressClaimed, BankCapacity, BankEnable, BankName,
+        BankStatus, BasicQuantities, BasicSetup, BatteryType, BrandId, ChargeStage, ChargeState,
+        DeviceId, IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth,
+        TbsPg, Temperature, Version, VersionInfo,
     },
     types::Frame,
 };
@@ -33,6 +33,7 @@ const PGN_TAG_BB3BS: (PgnTag, usize) = ([0x34, 0xF0], 16);
 const PGN_TAG_ADDRESS_CLAIMED: (PgnTag, usize) = ([0x00, 0xEE], 16);
 const PGN_TAG_VERSION_INFO: (PgnTag, usize) = ([0x02, 0xF0], 16);
 const PGN_TAG_HEARTBEAT: (PgnTag, usize) = ([0xFF, 0xFF], 8);
+const PGN_TAG_ACKNOWLEDGEMENT: (PgnTag, usize) = ([0x00, 0xe8], 16);
 
 enum BankId {
     Bank1,
@@ -118,6 +119,7 @@ impl Decoder {
             PGN_TAG_BB2BS => self.decode_bbbs(BankId::Bank2, frame),
             PGN_TAG_BB3BS => self.decode_bbbs(BankId::Bank3, frame),
             PGN_TAG_ADDRESS_CLAIMED => self.decode_address_claimed(frame),
+            PGN_TAG_ACKNOWLEDGEMENT => self.decode_acknowledgement(frame),
             _ => {
                 error!("Unknown PGN tag: {:02X?}", pgn_tag);
                 TbsPg::Unknown
@@ -304,7 +306,6 @@ impl Decoder {
 
     fn decode_bbbs(&self, bank: BankId, frame: Frame) -> TbsPg {
         let flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
-        error!("Flags: {:016b}", flags);
         let bank_enable = match flags & 0b11 {
             0 => BankEnable::Disabled,
             1 => BankEnable::Enabled,
@@ -339,7 +340,6 @@ impl Decoder {
     }
 
     fn decode_address_claimed(&self, frame: Frame) -> TbsPg {
-        debug!("Address claimed frame: {:?}", frame);
         let device_id = u16::from_le_bytes([frame.0[12], frame.0[13]]);
         let device_id = if device_id != 0x0A24 {
             error!("Unknown device ID: {:04X}", device_id);
@@ -360,5 +360,18 @@ impl Decoder {
             brand_id,
             serial_number: serial.wrapping_neg(),
         })
+    }
+
+    fn decode_acknowledgement(&self, frame: Frame) -> TbsPg {
+        let ack_type = frame.0[6];
+        let ack_type = match ack_type {
+            0 => AcknowledgementType::PositiveAcknowledgement,
+            1 => AcknowledgementType::NegativeAcknowledgement,
+            2 => AcknowledgementType::AccessDenied,
+            3 => AcknowledgementType::CannotRespond,
+            _ => AcknowledgementType::Reserved,
+        };
+        let pgn = u16::from_le_bytes([frame.0[12], frame.0[13]]);
+        TbsPg::Acknowledgement(Acknowledgement { ack_type, pgn })
     }
 }

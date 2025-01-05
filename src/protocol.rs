@@ -209,6 +209,31 @@ pub struct BasicSetup {
 
 #[derive(Debug)]
 #[allow(dead_code)]
+pub enum AcknowledgementType {
+    PositiveAcknowledgement = 0,
+    NegativeAcknowledgement = 1,
+    AccessDenied = 2,
+    CannotRespond = 3,
+    Reserved,
+}
+
+#[allow(dead_code)]
+pub struct Acknowledgement {
+    pub ack_type: AcknowledgementType,
+    pub pgn: u16,
+}
+
+impl std::fmt::Debug for Acknowledgement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Acknowledgement")
+            .field("ack_type", &self.ack_type)
+            .field("pgn", &format_args!("0x{:04X}", self.pgn))
+            .finish()
+    }
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
 pub enum TbsPg {
     Bb1dc(BasicQuantities),
     Bb2dc(BasicQuantities),
@@ -228,5 +253,6 @@ pub enum TbsPg {
     AddressClaimed(AddressClaimed),
     VersionInfo(VersionInfo),
     Heartbeat,
+    Acknowledgement(Acknowledgement),
     Unknown,
 }
