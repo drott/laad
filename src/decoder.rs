@@ -1,8 +1,9 @@
 use crate::{
     protocol::{
-        AddressClaimed, BankStatus, BasicQuantities, BrandId, ChargeStage, ChargeState, DeviceId,
-        IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg,
-        Temperature, Version, VersionInfo,
+        AddressClaimed, BankCapacity, BankEnable, BankName, BankStatus, BasicQuantities,
+        BasicSetup, BatteryType, BrandId, ChargeStage, ChargeState, DeviceId, IndicatorState,
+        PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg, Temperature, Version,
+        VersionInfo,
     },
     types::Frame,
 };
@@ -17,14 +18,17 @@ const PGN_TAG_BB1DC: (PgnTag, usize) = ([0x18, 0xF0], 16);
 const PGN_TAG_BB1PC: (PgnTag, usize) = ([0x19, 0xF0], 16);
 const PGN_TAG_BB1ST: (PgnTag, usize) = ([0x1A, 0xF0], 16);
 const PGN_TAG_BB1CS: (PgnTag, usize) = ([0x1E, 0xF0], 16);
+const PGN_TAG_BB1BS: (PgnTag, usize) = ([0x20, 0xF0], 16);
 const PGN_TAG_BB2DC: (PgnTag, usize) = ([0x22, 0xF0], 16);
 const PGN_TAG_BB2PC: (PgnTag, usize) = ([0x23, 0xF0], 16);
 const PGN_TAG_BB2ST: (PgnTag, usize) = ([0x24, 0xF0], 16);
 const PGN_TAG_BB2CS: (PgnTag, usize) = ([0x28, 0xF0], 16);
+const PGN_TAG_BB2BS: (PgnTag, usize) = ([0x2A, 0xF0], 16);
 const PGN_TAG_BB3DC: (PgnTag, usize) = ([0x2C, 0xF0], 16);
 const PGN_TAG_BB3PC: (PgnTag, usize) = ([0x2D, 0xF0], 16);
 const PGN_TAG_BB3ST: (PgnTag, usize) = ([0x2E, 0xF0], 16);
 const PGN_TAG_BB3CS: (PgnTag, usize) = ([0x32, 0xF0], 16);
+const PGN_TAG_BB3BS: (PgnTag, usize) = ([0x34, 0xF0], 16);
 
 const PGN_TAG_ADDRESS_CLAIMED: (PgnTag, usize) = ([0x00, 0xEE], 16);
 const PGN_TAG_VERSION_INFO: (PgnTag, usize) = ([0x02, 0xF0], 16);
@@ -34,6 +38,39 @@ enum BankId {
     Bank1,
     Bank2,
     Bank3,
+}
+
+impl BankName {
+    fn from_u8(byte: u8) -> Self {
+        match byte {
+            0 => BankName::BatteryBank1,
+            1 => BankName::BatteryBank2,
+            2 => BankName::BatteryBank3,
+            3 => BankName::MainBatteryBank,
+            4 => BankName::AuxiliaryBatteryBank,
+            5 => BankName::AuxiliaryBatteryBank1,
+            6 => BankName::AuxiliaryBatteryBank2,
+            7 => BankName::PrimaryBatteryBank,
+            8 => BankName::SecondaryBatteryBank,
+            9 => BankName::StarterBattery,
+            10 => BankName::ServiceBatteryBank,
+            11 => BankName::AccessoryBatteryBank,
+            12 => BankName::HouseBatteryBank,
+            13 => BankName::PortBattery,
+            14 => BankName::StarboardBatteryBank,
+            15 => BankName::PowerBatteryBank,
+            16 => BankName::GeneratorStarterBattery,
+            17 => BankName::BowThrusterBattery,
+            18 => BankName::RadioBattery,
+            19 => BankName::VehicleBattery,
+            20 => BankName::TrailerBattery,
+            21 => BankName::DrivetrainBattery,
+            22 => BankName::BrakeBattery,
+            23 => BankName::SolarBattery,
+            24 => BankName::OtherBattery,
+            _ => BankName::ParameterNotAvailable,
+        }
+    }
 }
 
 impl Decoder {
@@ -77,8 +114,14 @@ impl Decoder {
             PGN_TAG_BB1CS => self.decode_bbcs(BankId::Bank1, &frame),
             PGN_TAG_BB2CS => self.decode_bbcs(BankId::Bank2, &frame),
             PGN_TAG_BB3CS => self.decode_bbcs(BankId::Bank3, &frame),
+            PGN_TAG_BB1BS => self.decode_bbbs(BankId::Bank1, frame),
+            PGN_TAG_BB2BS => self.decode_bbbs(BankId::Bank2, frame),
+            PGN_TAG_BB3BS => self.decode_bbbs(BankId::Bank3, frame),
             PGN_TAG_ADDRESS_CLAIMED => self.decode_address_claimed(frame),
-            _ => TbsPg::Unknown,
+            _ => {
+                error!("Unknown PGN tag: {:02X?}", pgn_tag);
+                TbsPg::Unknown
+            }
         }
     }
 
@@ -256,6 +299,41 @@ impl Decoder {
             BankId::Bank1 => TbsPg::Bb1dc(quantities),
             BankId::Bank2 => TbsPg::Bb2dc(quantities),
             BankId::Bank3 => TbsPg::Bb3dc(quantities),
+        }
+    }
+
+    fn decode_bbbs(&self, bank: BankId, frame: Frame) -> TbsPg {
+        let flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
+        let bank_enable = match flags & 0x02 {
+            0 => BankEnable::Disabled,
+            1 => BankEnable::Enabled,
+            _ => BankEnable::ParameterUnavailable,
+        };
+        let battery_type = u16::from_le_bytes([frame.0[8], frame.0[9]]);
+        let battery_type = match battery_type {
+            2000 => BatteryType::Flooded,
+            3000 => BatteryType::Gel,
+            3200 => BatteryType::AGM,
+            5000 => BatteryType::LiFePo4,
+            _ => BatteryType::ParameterNotAvailable,
+        };
+        let bank_capacity = u16::from_le_bytes([frame.0[10], frame.0[11]]);
+        let bank_capacity = if bank_capacity == 0xFFFF {
+            BankCapacity::ParameterNotAvailable
+        } else {
+            BankCapacity::CapacityAh(bank_capacity)
+        };
+        let bank_name = BankName::from_u8(frame.0[13]);
+        let basic_setup = BasicSetup {
+            bank_enable,
+            bank_name,
+            bank_capacity,
+            battery_type,
+        };
+        match bank {
+            BankId::Bank1 => TbsPg::Bb1bs(basic_setup),
+            BankId::Bank2 => TbsPg::Bb2bs(basic_setup),
+            BankId::Bank3 => TbsPg::Bb3bs(basic_setup),
         }
     }
 

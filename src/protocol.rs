@@ -1,3 +1,4 @@
+
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 #[repr(u8)]
@@ -141,6 +142,74 @@ pub struct AddressClaimed {
     pub serial_number: u32,
 }
 
+#[derive(Debug,Default)]
+#[allow(dead_code)]
+pub enum BankEnable {
+    Disabled = 0,
+    Enabled = 1,    
+    #[default]
+    ParameterUnavailable,
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum BankName {
+    BatteryBank1 = 0,
+    BatteryBank2 = 1,
+    BatteryBank3 = 2,
+    MainBatteryBank = 3,
+    AuxiliaryBatteryBank = 4,
+    AuxiliaryBatteryBank1 = 5,
+    AuxiliaryBatteryBank2 = 6,
+    PrimaryBatteryBank = 7,
+    SecondaryBatteryBank = 8,
+    StarterBattery = 9,
+    ServiceBatteryBank = 10,
+    AccessoryBatteryBank = 11,
+    HouseBatteryBank = 12,
+    PortBattery = 13,
+    StarboardBatteryBank = 14,
+    PowerBatteryBank = 15,
+    GeneratorStarterBattery = 16,
+    BowThrusterBattery = 17,
+    RadioBattery = 18,
+    VehicleBattery = 19,
+    TrailerBattery = 20,
+    DrivetrainBattery = 21,
+    BrakeBattery = 22,
+    SolarBattery = 23,
+    OtherBattery = 24,
+    ParameterNotAvailable = 255,
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum BankCapacity {
+    CapacityAh(u16),
+    ParameterNotAvailable,
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum BatteryType {
+    Flooded = 2000,
+    Gel = 3000,
+    AGM = 3200,
+    LiFePo4 = 5000,
+    ParameterNotAvailable = 65535,
+}
+
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct BasicSetup {
+    pub bank_enable: BankEnable,
+    pub bank_name: BankName,
+    pub bank_capacity: BankCapacity,
+    pub battery_type: BatteryType,
+}
+
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum TbsPg {
@@ -156,6 +225,9 @@ pub enum TbsPg {
     Bb1cs(ChargeState),
     Bb2cs(ChargeState),
     Bb3cs(ChargeState),
+    Bb1bs(BasicSetup),
+    Bb2bs(BasicSetup),
+    Bb3bs(BasicSetup),
     AddressClaimed(AddressClaimed),
     VersionInfo(VersionInfo),
     Heartbeat,
