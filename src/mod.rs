@@ -35,7 +35,12 @@
 //!   }
 //! }
 //! ```
+
+/// Decoder decodes frames into protocol types.
 pub mod decoder;
+/// FrameParser identifies frames in a stream of bytes and sends the frames to a Tokio channel.
 pub mod frameparser;
+/// Protocol defines the TBS protocol and decoded information for frame types that are understood.
 pub mod protocol;
+/// Basic types for bytes and frames.
 pub mod types;
