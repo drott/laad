@@ -9,7 +9,7 @@ mod random_sender;
 mod replay_sender;
 
 use random_sender::RandomSender;
-use tbslib::{decoder, frames::FrameParser, protocol::TbsPg, types::Bytes};
+use tbslib::{decoder, frameparser::FrameParser, protocol::TbsPg, types::Bytes};
 use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 

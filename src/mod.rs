@@ -36,6 +36,6 @@
 //! }
 //! ```
 pub mod decoder;
-pub mod frames;
+pub mod frameparser;
 pub mod protocol;
 pub mod types;
