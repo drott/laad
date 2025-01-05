@@ -1,3 +1,4 @@
+use replay_sender::ReplaySender;
 use tokio::sync::mpsc::Sender;
 
 use ble_receiver::BleReceiver;
@@ -8,11 +9,12 @@ mod decoder;
 mod frames;
 mod protocol;
 mod random_sender;
+mod replay_sender;
 mod types;
 
 use frames::FrameParser;
 use random_sender::RandomSender;
-use tracing::{debug, info, Level};
+use tracing::{debug, error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 use types::Bytes;
 
@@ -24,6 +26,13 @@ fn configure_and_run_source(bytes_tx: Sender<Bytes>) {
                 .help("Use BLE receiver instead of random sender")
                 .required(false)
                 .action(clap::ArgAction::SetTrue),
+            
+        ).arg(
+            clap::Arg::new("replay")
+                .help("Use a replay file instead of random sender")
+                .long("replay")
+                .required(false)
+                .action(clap::ArgAction::SetTrue),
         )
         .get_matches_from(std::env::args());
 
@@ -31,6 +40,11 @@ fn configure_and_run_source(bytes_tx: Sender<Bytes>) {
         let mut sender = BleReceiver::new(bytes_tx);
         tokio::spawn(async move {
             sender.start_receiving().await;
+        });
+    } else if matches.get_flag("replay") {
+        let mut sender = ReplaySender::new(bytes_tx);
+        tokio::spawn(async move {
+            sender.send_bytes().await;
         });
     } else {
         let mut sender = RandomSender::new(bytes_tx);
@@ -65,7 +79,7 @@ async fn main() {
         let decoded = decoder.decode_frame(frame);
         match decoded {
             protocol::TbsPg::Unknown => {
-                debug!("Received unknown frame");
+                error!("Received unknown frame");
             }
             _ => {
                 info!("Decoded frame: {:?}", decoded);

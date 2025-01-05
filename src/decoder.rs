@@ -1,8 +1,6 @@
 use crate::{
     protocol::{
-        AddressClaimed, BankStatus, BasicQuantities, BrandId, ChargeStage, ChargeState, DeviceId,
-        IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg,
-        Version, VersionInfo,
+        AddressClaimed, BankStatus, BasicQuantities, BrandId, ChargeStage, ChargeState, DeviceId, IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg, Temperature, Version, VersionInfo
     },
     types::Frame,
 };
@@ -178,8 +176,20 @@ impl Decoder {
 
     fn decode_bbpc(&self, bank_id: BankId, frame: Frame) -> TbsPg {
         let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
-        let power = u16::from_le_bytes([frame.0[8], frame.0[9]]) as f32 * 0.1 - 80000.0;
-        let charge = u16::from_le_bytes([frame.0[10], frame.0[11]]) as f32 * 0.01 - 80000.0;
+        const UNAVAILABLE: u32 = 0x00FFFFFF;
+        let power = u32::from_be_bytes([frame.0[8], frame.0[9], frame.0[10], 0]);
+        let power = if power != UNAVAILABLE {
+            Some(power as f32 * 0.1 - 80000.0)
+        } else {
+            None
+        };
+        let charge = u32::from_be_bytes([frame.0[11], frame.0[12], frame.0[13], 0]);
+        let charge = if charge != UNAVAILABLE {
+            Some(charge as f32 * 0.01 - 80000.0)
+        } else {
+            None
+        };
+
         let power_and_charge = PowerAndCharge {
             power,
             consumed_amp_hours: charge,
@@ -214,7 +224,12 @@ impl Decoder {
 
     fn decode_bbdc(&self, bank: BankId, frame: Frame) -> TbsPg {
         let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
-        let voltage = u16::from_le_bytes([frame.0[8], frame.0[9]]) as f32 * 0.01;
+        let voltage = u16::from_le_bytes([frame.0[8], frame.0[9]]) ;
+        let voltage = if voltage == 0xFFFF {
+            None
+        } else {
+            Some(voltage as f32 * 0.01)
+        };
         let current = if frame.0[10..13] == [0xFF, 0xFF, 0xFF] {
             None
         } else {
@@ -224,9 +239,11 @@ impl Decoder {
             )
         };
         let temperature = if frame.0[13] == 0xFE {
-            None
+            Temperature::NoSensorDetected
+        } else if frame.0[13] == 0xFF {
+            Temperature::Unavailable
         } else {
-            Some(frame.0[13] as f32 * 0.5 - 40.0)
+            Temperature::DegreesCelsius(frame.0[13] as f32 * 0.5 - 40.0)
         };
         let quantities = BasicQuantities {
             voltage,

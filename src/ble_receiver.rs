@@ -9,6 +9,10 @@ use tokio::time;
 use tracing::{debug, error, info};
 use uuid::Uuid;
 
+// From Android hci snoop log, the TBS characteristic data updates can be extracted
+// using tshark with the following command:
+// tshark -r btlog_pre_filter.log -Y "(bthci_acl.src.bd_addr[4:2] == 31:d8) && (btatt.opcode == 0x1d)" -T fields -e btatt.value
+
 pub struct BleReceiver {
     tx: mpsc::Sender<Bytes>,
 }

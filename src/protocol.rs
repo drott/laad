@@ -91,22 +91,31 @@ pub struct VersionInfo {
     pub auxiliary_version: Version,
 }
 
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum Temperature {
+    DegreesCelsius(f32),
+    Unavailable,
+    NoSensorDetected
+}
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct BasicQuantities {
     // TODO: Flag state.
-    pub voltage: f32,
+    pub voltage: Option<f32>,
     pub current: Option<f32>,
-    pub temperature: Option<f32>,
+    pub temperature: Temperature,
 }
 
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct PowerAndCharge {
     // in W.
-    pub power: f32,
+    pub power: Option<f32>,
     // in Ah.
-    pub consumed_amp_hours: f32,
+    pub consumed_amp_hours: Option<f32>,
 }
 
 #[derive(Debug, Default)]
