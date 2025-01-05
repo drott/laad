@@ -4,7 +4,6 @@ use tokio::sync::mpsc;
 
 use crate::types::Bytes;
 
-
 pub struct ReplaySender {
     tx: mpsc::Sender<Bytes>,
     replay_file: Option<std::iter::Cycle<std::vec::IntoIter<std::string::String>>>,
@@ -20,8 +19,12 @@ impl ReplaySender {
 
     pub fn open_file_if_needed(&mut self) {
         if self.replay_file.is_none() {
-            let file = std::fs::File::open("dump/dumped_btatt_values.log").expect("Failed to open replay file");
-            let lines = std::io::BufReader::new(file).lines().collect::<Result<Vec<_>, _>>().expect("Failed to read lines");
+            let file = std::fs::File::open("dump/dumped_btatt_values.log")
+                .expect("Failed to open replay file");
+            let lines = std::io::BufReader::new(file)
+                .lines()
+                .collect::<Result<Vec<_>, _>>()
+                .expect("Failed to read lines");
             self.replay_file = Some(lines.into_iter().cycle());
         }
     }

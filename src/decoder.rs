@@ -1,6 +1,8 @@
 use crate::{
     protocol::{
-        AddressClaimed, BankStatus, BasicQuantities, BrandId, ChargeStage, ChargeState, DeviceId, IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg, Temperature, Version, VersionInfo
+        AddressClaimed, BankStatus, BasicQuantities, BrandId, ChargeStage, ChargeState, DeviceId,
+        IndicatorState, PowerAndCharge, RemainingTime, StateOfCharge, StateOfHealth, TbsPg,
+        Temperature, Version, VersionInfo,
     },
     types::Frame,
 };
@@ -224,7 +226,7 @@ impl Decoder {
 
     fn decode_bbdc(&self, bank: BankId, frame: Frame) -> TbsPg {
         let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
-        let voltage = u16::from_le_bytes([frame.0[8], frame.0[9]]) ;
+        let voltage = u16::from_le_bytes([frame.0[8], frame.0[9]]);
         let voltage = if voltage == 0xFFFF {
             None
         } else {

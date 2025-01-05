@@ -91,13 +91,12 @@ pub struct VersionInfo {
     pub auxiliary_version: Version,
 }
 
-
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum Temperature {
     DegreesCelsius(f32),
     Unavailable,
-    NoSensorDetected
+    NoSensorDetected,
 }
 
 #[derive(Debug)]

@@ -26,8 +26,8 @@ fn configure_and_run_source(bytes_tx: Sender<Bytes>) {
                 .help("Use BLE receiver instead of random sender")
                 .required(false)
                 .action(clap::ArgAction::SetTrue),
-            
-        ).arg(
+        )
+        .arg(
             clap::Arg::new("replay")
                 .help("Use a replay file instead of random sender")
                 .long("replay")
