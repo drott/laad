@@ -8,14 +8,9 @@ mod ble_receiver;
 mod random_sender;
 mod replay_sender;
 
-use tbslib::{
-    frames::FrameParser,
-    types::Bytes,
-    decoder,
-    protocol::TbsPg,
-};
 use random_sender::RandomSender;
-use tracing::{ error, info, Level};
+use tbslib::{decoder, frames::FrameParser, protocol::TbsPg, types::Bytes};
+use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 fn configure_and_run_source(bytes_tx: Sender<Bytes>) {

@@ -1,9 +1,9 @@
-use tbslib::types::Bytes;
 use btleplug::api::{Central, CharPropFlags, Manager as _, Peripheral, ScanFilter, WriteType};
 use btleplug::platform::Manager;
 use futures::StreamExt;
 use std::error::Error;
 use std::time::Duration;
+use tbslib::types::Bytes;
 use tokio::sync::mpsc;
 use tokio::time;
 use tracing::{debug, error, info};
