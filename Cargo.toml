@@ -10,7 +10,6 @@ path = "src/mod.rs"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
 tracing = "0.1"
-tracing-subscriber = "0.3.19"
 regex = "1.11.1"
 futures = "0.3.31"
 
@@ -20,6 +19,8 @@ rand = { version = "0.8", features = [ "small_rng" ] }
 clap = "4.5.23"
 ble-peripheral-rust = "0.1"
 uuid = "1.11.0"
+tracing-subscriber = "0.3.19"
+
 
 [[example]]
 name = "tbsreader"
