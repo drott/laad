@@ -9,6 +9,12 @@ pub struct FrameParser {
     buffered_bytes: Vec<u8>,
 }
 
+impl Default for FrameParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FrameParser {
     pub fn new() -> Self {
         Self {
@@ -52,7 +58,7 @@ impl FrameParser {
             for cap in re.captures_iter(self.buffered_bytes.as_slice()) {
                 if let Some(matched) = cap.get(0) {
                     last_match_end = matched.end();
-                    let matched_debytestuffed = self.de_bytestuff(&matched.as_bytes());
+                    let matched_debytestuffed = self.de_bytestuff(matched.as_bytes());
                     if let Err(e) = tx
                         .send(Frame(matched_debytestuffed.into_boxed_slice()))
                         .await
