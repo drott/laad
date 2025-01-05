@@ -77,10 +77,81 @@ impl BankName {
     }
 }
 
-impl Decoder {
-    pub fn decode_frame(&self, frame: Frame) -> TbsPg {
-        // TODO: Byte stuff.
+impl ChargeStage {
+    fn from_u8(charge_stage: u8) -> Self {
+        match charge_stage {
+            1 => ChargeStage::SoftStart,
+            2 => ChargeStage::Bulk,
+            3 => ChargeStage::ExtendedBulk,
+            4 => ChargeStage::Absorption,
+            6 => ChargeStage::Analyze,
+            8 => ChargeStage::Float,
+            9 => ChargeStage::Pulse,
+            11 => ChargeStage::Equalize,
+            13 => ChargeStage::Stop,
+            15 => ChargeStage::Error,
+            255 => ChargeStage::Unavailable,
+            _ => ChargeStage::Unknown,
+        }
+    }
+}
 
+impl OperatingMode {
+    fn from_u8(mode: u8) -> Self {
+        match mode {
+            0 => OperatingMode::DeviceOff,
+            1 => OperatingMode::DeviceBooting,
+            2 => OperatingMode::DeviceWaitingForSlaves,
+            3 => OperatingMode::DeviceWaitingForMaster,
+            10 => OperatingMode::DeviceOn,
+            11 => OperatingMode::DeviceOnNightMode,
+            127 => OperatingMode::DeviceInError,
+            _ => OperatingMode::ParameterNotAvailable,
+        }
+    }
+}
+
+impl IndicatorState {
+    fn from_u8(indicator_state: u8) -> Self {
+        match indicator_state {
+            0 => IndicatorState::Off,
+            1 => IndicatorState::On,
+            2 => IndicatorState::Blinking,
+            3 => IndicatorState::NotAvailable,
+            _ => IndicatorState::NotAvailable,
+        }
+    }
+}
+
+impl AcknowledgementType {
+    fn from_u8(acknowledgment: u8) -> Self {
+        match acknowledgment {
+            0 => AcknowledgementType::PositiveAcknowledgement,
+            1 => AcknowledgementType::NegativeAcknowledgement,
+            2 => AcknowledgementType::AccessDenied,
+            3 => AcknowledgementType::CannotRespond,
+            _ => AcknowledgementType::Reserved,
+        }
+    }
+}
+
+impl Decoder {
+    /// Decodes a given frame into a `TbsPg` type.
+    ///
+    /// Receives frames with bytestuffing reverted and:
+    /// 1. Ensures the frame is at least 8 bytes long.
+    /// 2. Extracts the PGN tag and checksum, and validates it.
+    /// 4. Matches the PGN tag and frame length for known PGNs and decodes them.
+    ///
+    /// # Parameters
+    /// - `frame`: The frame to be decoded, with bytestuffing reverted.
+    ///
+    /// # Returns
+    /// - `TbsPg`: The decoded frame as a `TbsPg` type. If the frame is invalid or the PGN tag is unknown, it returns `TbsPg::Unknown`.
+    ///
+    /// # Errors
+    /// - Logs an error if the checksum calculation fails or if the PGN tag is unknown.
+    pub fn decode_frame(&self, frame: Frame) -> TbsPg {
         let frame_len = frame.0.len();
         if frame_len < 8 {
             return TbsPg::Unknown;
@@ -92,7 +163,7 @@ impl Decoder {
 
         if let Some(calculated_checksum) = calculated_checksum {
             if checksum != calculated_checksum {
-                debug!(
+                error!(
                     "Checksum not valid for PGN tag: {:02X?}, 0x{:02X?} vs 0x{:02X}?",
                     pgn_tag, checksum, calculated_checksum
                 );
@@ -126,7 +197,10 @@ impl Decoder {
             PGN_TAG_DEVICE_NAME => self.decode_device_name(frame),
             PGN_TAG_OPERATION_MODE => self.decode_operating_mode(frame),
             _ => {
-                error!("Unknown PGN tag: {:02X?}", pgn_tag);
+                error!(
+                    "Unknown PGN tag: {:02X?}, frame length {:?}",
+                    pgn_tag, frame_len
+                );
                 TbsPg::Unknown
             }
         }
@@ -182,35 +256,13 @@ impl Decoder {
 
     fn decode_bbcs(&self, bank_id: BankId, frame: &Frame) -> TbsPg {
         let _flags = u16::from_le_bytes([frame.0[6], frame.0[7]]);
-        let charge_state = frame.0[8];
-        let charge_stage = match charge_state {
-            1 => ChargeStage::SoftStart,
-            2 => ChargeStage::Bulk,
-            3 => ChargeStage::ExtendedBulk,
-            4 => ChargeStage::Absorption,
-            6 => ChargeStage::Analyze,
-            8 => ChargeStage::Float,
-            9 => ChargeStage::Pulse,
-            11 => ChargeStage::Equalize,
-            13 => ChargeStage::Stop,
-            15 => ChargeStage::Error,
-            255 => ChargeStage::Unavailable,
-            _ => ChargeStage::Unknown,
-        };
+        let charge_stage = frame.0[8];
+        let charge_stage = ChargeStage::from_u8(charge_stage);
         let indicator_flags = frame.0[9];
-        fn bits_to_indicator_state(bits: u8) -> IndicatorState {
-            match bits {
-                0 => IndicatorState::Off,
-                1 => IndicatorState::On,
-                2 => IndicatorState::Blinking,
-                3 => IndicatorState::NotAvailable,
-                _ => IndicatorState::NotAvailable,
-            }
-        }
-        let indicator_0_49 = bits_to_indicator_state(indicator_flags & 0b11);
-        let indicator_50_79 = bits_to_indicator_state((indicator_flags >> 2) & 0b11);
-        let indicator_80_99 = bits_to_indicator_state((indicator_flags >> 4) & 0b11);
-        let indicator_100 = bits_to_indicator_state((indicator_flags >> 6) & 0b11);
+        let indicator_0_49 = IndicatorState::from_u8(indicator_flags & 0b11);
+        let indicator_50_79 = IndicatorState::from_u8((indicator_flags >> 2) & 0b11);
+        let indicator_80_99 = IndicatorState::from_u8((indicator_flags >> 4) & 0b11);
+        let indicator_100 = IndicatorState::from_u8((indicator_flags >> 6) & 0b11);
         let charge_state = ChargeState {
             stage: charge_stage,
             indicator_0_49,
@@ -368,14 +420,7 @@ impl Decoder {
     }
 
     fn decode_acknowledgement(&self, frame: Frame) -> TbsPg {
-        let ack_type = frame.0[6];
-        let ack_type = match ack_type {
-            0 => AcknowledgementType::PositiveAcknowledgement,
-            1 => AcknowledgementType::NegativeAcknowledgement,
-            2 => AcknowledgementType::AccessDenied,
-            3 => AcknowledgementType::CannotRespond,
-            _ => AcknowledgementType::Reserved,
-        };
+        let ack_type = AcknowledgementType::from_u8(frame.0[6]);
         let pgn = u16::from_le_bytes([frame.0[12], frame.0[13]]);
         TbsPg::Acknowledgement(Acknowledgement { ack_type, pgn })
     }
@@ -387,17 +432,7 @@ impl Decoder {
     }
 
     fn decode_operating_mode(&self, frame: Frame) -> TbsPg {
-        let mode = frame.0[6];
-        let mode = match mode {
-            0 => OperatingMode::DeviceOff,
-            1 => OperatingMode::DeviceBooting,
-            2 => OperatingMode::DeviceWaitingForSlaves,
-            3 => OperatingMode::DeviceWaitingForMaster,
-            10 => OperatingMode::DeviceOn,
-            11 => OperatingMode::DeviceOnNightMode,
-            127 => OperatingMode::DeviceInError,
-            _ => OperatingMode::ParameterNotAvailable,
-        };
+        let mode = OperatingMode::from_u8(frame.0[6]);
         let lock_flag = u16::from_le_bytes([frame.0[8], frame.0[9]]) >> 14;
         let installer_lock = match lock_flag {
             0 => InstallerLock::InstallerLockOff,
