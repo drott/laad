@@ -15,6 +15,33 @@ impl Default for FrameParser {
     }
 }
 
+/// FrameParser parses frames from a TBS battery monitor or charger.
+/// It uses a regex to find frames in a stream of bytes, and sends the frames to a Tokio channel (`mpsc::Sender`).
+/// The bytes in the frame are de-bytestuffed before being sent to the channel.
+/// Receives raw bytes from a `tokio::mpsc::Receiver`, identifies frames identified
+/// by a start byte (0xAA) and an end byte (0x99), using regular expressions in byte-mode.
+/// The frames are sent to a `tokio::mpsc::Sender` after de-bytestuffing.
+///
+/// # Arguments
+///
+/// * `rx` - A `tokio::mpsc::Receiver<Bytes>` that provides the raw bytes to be parsed.
+/// * `tx` - A `tokio::mpsc::Sender<Frame>` that receives the parsed frames after de-bytestuffing.
+///
+/// # Example
+///
+/// ```rust
+/// use tbslib::frames::FrameParser;
+/// use tokio::sync::mpsc;
+/// #[tokio::main]
+/// async fn main() {
+///   let (tx, rx) = mpsc::channel(100);
+///   let (frame_tx, frame_rx) = mpsc::channel(100);
+///   let mut parser = FrameParser::new();
+///   tokio::spawn(async move {
+///       parser.parse_frames(rx, frame_tx).await;
+///   });
+/// }
+/// ```
 impl FrameParser {
     pub fn new() -> Self {
         Self {
@@ -40,6 +67,12 @@ impl FrameParser {
         de_bytestuffed
     }
 
+    /// Receives raw bytes from a tokio mpsc::Receiver, identifies frames identified
+    /// by a start byte (0xAA) and an end byte (0x99),
+    /// using regular expressions in byte-mode.
+    /// The frames are sent to a tokio mpsc::Sender after de-bytestuffing.
+    /// The function will continue to receive bytes until the tokio mpsc::Receiver is closed.
+    /// The receiver of the de-bytestuffed frames can then decode the frames using the [`decode_frame`](crate::decoder::Decoder::decode_frame) function.
     pub async fn parse_frames(&mut self, mut rx: mpsc::Receiver<Bytes>, tx: mpsc::Sender<Frame>) {
         while let Some(bytes) = rx.recv().await {
             const START_BYTE: u8 = 0xaa;

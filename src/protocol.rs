@@ -1,3 +1,7 @@
+//! This module defines known enums, structs, and implementations related to the protocol
+//! for the TBS battery monitors and chargers.
+
+/// Represents the different stages of charging, used in the [charge state](ChargeState) message.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 #[repr(u8)]
@@ -18,6 +22,7 @@ pub enum ChargeStage {
     Unknown = 5,
 }
 
+/// Represents the state of an indicator.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub enum IndicatorState {
@@ -28,6 +33,7 @@ pub enum IndicatorState {
     NotAvailable,
 }
 
+/// Represents the state of charge including indicators for ranges of charge levels.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub struct ChargeState {
@@ -38,6 +44,7 @@ pub struct ChargeState {
     pub indicator_100: IndicatorState,
 }
 
+/// Represents the remaining time for charging or other operations, used in the [bank status](BankStatus) message.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub enum RemainingTime {
@@ -47,6 +54,7 @@ pub enum RemainingTime {
     Unavailable,
 }
 
+/// Represents the state of health of the battery, , used in the [bank status](BankStatus) message.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub enum StateOfHealth {
@@ -56,6 +64,7 @@ pub enum StateOfHealth {
     Initializing,
 }
 
+/// Represents the state of charge of the battery, used in the [bank status](BankStatus) message.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub enum StateOfCharge {
@@ -65,6 +74,7 @@ pub enum StateOfCharge {
     Initializing,
 }
 
+/// Represents the status of a battery bank.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub struct BankStatus {
@@ -74,6 +84,7 @@ pub struct BankStatus {
     pub time_remaining: RemainingTime,
 }
 
+/// Represents the version information of firmware, hardware, bootloader, and auxiliary components, used in the [version info](VersionInfo) message.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub struct Version {
@@ -82,6 +93,7 @@ pub struct Version {
     pub maintenance: u8,
 }
 
+/// Contains version information for firmware, hardware, bootloader, and auxiliary components.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub struct VersionInfo {
@@ -91,6 +103,7 @@ pub struct VersionInfo {
     pub auxiliary_version: Version,
 }
 
+/// Represents the temperature in degrees Celsius or other states, used in the [basic quantities](BasicQuantities) message.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum Temperature {
@@ -99,6 +112,7 @@ pub enum Temperature {
     NoSensorDetected,
 }
 
+/// Represents so called "basic quantities" such as voltage, current, and temperature.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct BasicQuantities {
@@ -108,6 +122,7 @@ pub struct BasicQuantities {
     pub temperature: Temperature,
 }
 
+/// Represents power and charge information.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct PowerAndCharge {
@@ -117,6 +132,7 @@ pub struct PowerAndCharge {
     pub consumed_amp_hours: Option<f32>,
 }
 
+/// Represents the device ID, used in the [address claimed](AddressClaimed) message.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub enum DeviceId {
@@ -125,6 +141,7 @@ pub enum DeviceId {
     Unknown,
 }
 
+/// Represents the brand ID, used in the [address claimed](AddressClaimed) message.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub enum BrandId {
@@ -133,6 +150,7 @@ pub enum BrandId {
     Unknown,
 }
 
+/// Represents the address claimed by a device.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct AddressClaimed {
@@ -141,6 +159,7 @@ pub struct AddressClaimed {
     pub serial_number: u32,
 }
 
+/// Represents the enablement state of a bank, used in the [basic setup](BasicSetup) message.
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub enum BankEnable {
@@ -150,6 +169,7 @@ pub enum BankEnable {
     ParameterUnavailable,
 }
 
+/// Represents the chosen name of a battery bank, as configured by the user.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum BankName {
@@ -181,6 +201,7 @@ pub enum BankName {
     ParameterNotAvailable = 255,
 }
 
+/// Represents the capacity of a bank in ampere-hours.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum BankCapacity {
@@ -188,6 +209,7 @@ pub enum BankCapacity {
     ParameterNotAvailable,
 }
 
+/// Represents the type of battery.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum BatteryType {
@@ -198,6 +220,7 @@ pub enum BatteryType {
     ParameterNotAvailable = 65535,
 }
 
+/// Represents the basic setup of a battery bank, whether it is enabled or not, its name (from [BankName]), and the battery type, from [BatteryType].
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct BasicSetup {
@@ -207,6 +230,7 @@ pub struct BasicSetup {
     pub battery_type: BatteryType,
 }
 
+/// Represents the type of acknowledgement, used in the [acknowledgement](Acknowledgement) message.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum AcknowledgementType {
@@ -217,6 +241,7 @@ pub enum AcknowledgementType {
     Reserved,
 }
 
+/// Represents an acknowledgement message, received when a request for a PGN was sent.
 #[allow(dead_code)]
 pub struct Acknowledgement {
     pub ack_type: AcknowledgementType,
@@ -232,6 +257,7 @@ impl std::fmt::Debug for Acknowledgement {
     }
 }
 
+/// Represents the name of a device, as null-terminated string.
 #[allow(dead_code)]
 pub struct DeviceName {
     pub name: [u8; 32],
@@ -248,6 +274,7 @@ impl std::fmt::Debug for DeviceName {
     }
 }
 
+/// Represents the operating mode of a device, used in the [operating mode status](OperatingModeStatus).
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum OperatingMode {
@@ -261,6 +288,7 @@ pub enum OperatingMode {
     ParameterNotAvailable = 255,
 }
 
+/// Represents the installer lock state, used in the [operating mode status](OperatingModeStatus).
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum InstallerLock {
@@ -269,6 +297,7 @@ pub enum InstallerLock {
     ParameterNotAvailable,
 }
 
+/// Operating mode status of a device.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct OperatingModeStatus {
@@ -276,6 +305,7 @@ pub struct OperatingModeStatus {
     pub installer_lock: InstallerLock,
 }
 
+/// TBS protocol messages.
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum TbsPg {

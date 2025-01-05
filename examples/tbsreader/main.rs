@@ -63,6 +63,8 @@ async fn main() {
 
     configure_and_run_source(bytes_tx);
 
+    // Source sends bytes to bytes_tx using bytes_tx.send(Bytes(bytes)).await.
+
     let mut frame_parser = FrameParser::new();
 
     tokio::spawn(async move {
