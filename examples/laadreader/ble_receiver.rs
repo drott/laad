@@ -3,7 +3,7 @@ use btleplug::platform::Manager;
 use futures::StreamExt;
 use std::error::Error;
 use std::time::Duration;
-use tbslib::types::Bytes;
+use laad::types::Bytes;
 use tokio::sync::mpsc;
 use tokio::time;
 use tracing::{debug, error, info};

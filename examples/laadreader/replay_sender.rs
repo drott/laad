@@ -2,7 +2,7 @@ use std::io::BufRead;
 
 use tokio::sync::mpsc;
 
-use tbslib::types::Bytes;
+use laad::types::Bytes;
 
 pub struct ReplaySender {
     tx: mpsc::Sender<Bytes>,

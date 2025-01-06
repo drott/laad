@@ -630,6 +630,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "laad"
+version = "0.1.0"
+dependencies = [
+ "ble-peripheral-rust",
+ "btleplug",
+ "clap",
+ "futures",
+ "rand",
+ "regex",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1136,23 +1153,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "tbslib"
-version = "0.1.0"
-dependencies = [
- "ble-peripheral-rust",
- "btleplug",
- "clap",
- "futures",
- "rand",
- "regex",
- "tokio",
- "tokio-stream",
- "tracing",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]

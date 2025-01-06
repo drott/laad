@@ -2,7 +2,7 @@ use rand::prelude::SliceRandom;
 use rand::Rng;
 use tokio::sync::mpsc;
 
-use tbslib::types::Bytes;
+use laad::types::Bytes;
 
 const EXAMPLE_PACKETS: &[&[u8]] = &[
     &[0xAA, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0x03, 0x99], // [HRTBT]
