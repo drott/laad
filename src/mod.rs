@@ -22,7 +22,7 @@
 //!   });
 //!
 //!   while let Some(frame) = frames_rx.recv().await {
-//!       let decoder = decoder::Decoder {};
+//!       let decoder = Decoder::new();
 //!       let decoded = decoder.decode_frame(frame);
 //!       match decoded {
 //!           TbsPg::Unknown => {
