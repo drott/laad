@@ -33,8 +33,15 @@ jobs:
           command: test
           args: --verbose
 
+      - name: Run checks
+        uses: actions-rs/cargo@v1
+        env:
+          RUSTFLAGS: "-D warnings"
+        with:
+          command: test
+          args: --all-features
+
       - name: Run Clippy
         uses: actions-rs/clippy-check@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -- -D warnings
+          args: --all-targets --all-features -- -D warnings
