@@ -6,7 +6,11 @@ So far it's been tested to decode most PGNs of a dump from the TBS Battery Monit
 
 ### Examples
 
-The `examples/` directory contains an executable `laadreader` that can be started against a packet sender that sends random packets (default), a packet sender that sends packets from a replay of communication with the battery monitor (argument `--replay`), and one (argument `--ble` that connects to a TBS battery monitor using Bluetooth Low Energy (BLE).
+The `examples/` directory contains the `laadreader` command line tool that can be started against
+
+* a packet sender that sends random packets (default),
+* a packet sender that sends packets from a replay of communication with the battery monitor (argument `--replay`),
+* and one (argument `--ble` that connects to a TBS battery monitor using Bluetooth Low Energy (BLE).
 
 The `laadreader` tool connects via BLE to a device with "TBS" in its name and connects to the serial port characteristic on the TBS device, then waits for a moment for unsolicited packets, then sends a request all packet to retrieve more information.
 
