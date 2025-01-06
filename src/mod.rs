@@ -1,9 +1,9 @@
 //!
-//! # TBS Library
+//! # Laad
 //!
 //! This library decodes frames from the TBS battery monitor and TBS charger products.
 //!
-//! Example usage (see also **examples/tbsreader/main.rs**):
+//! Example usage (see also **examples/laadreader/main.rs**):
 //!
 //! ```rust
 //! use tokio::sync::mpsc;

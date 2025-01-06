@@ -14,7 +14,7 @@ use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 fn configure_and_run_source(bytes_tx: Sender<Bytes>) {
-    let matches = clap::Command::new("tbslib")
+    let matches = clap::Command::new("laadreader")
         .arg(
             clap::Arg::new("ble")
                 .long("ble")
