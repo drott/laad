@@ -47,7 +47,7 @@ let (bytes_tx, bytes_rx) = mpsc::channel(5);
 
 ### Name
 
-*Laad* is a play on the Dutch word for charging.
+*Laad* as the library name is a play on the Dutch word for charging.
 
 ### Acknowledgement
 
