@@ -23,5 +23,5 @@ tracing-subscriber = "0.3.19"
 
 
 [[example]]
-name = "tbsreader"
-path = "examples/tbsreader/main.rs"
+name = "laadreader"
+path = "examples/laadreader/main.rs"
