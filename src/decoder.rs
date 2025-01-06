@@ -135,11 +135,16 @@ impl AcknowledgementType {
     }
 }
 
+impl Default for Decoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Decoder {
     pub fn new() -> Self {
         Self {}
     }
-
     /// Decodes a given frame into a `TbsPg` type.
     ///
     /// Receives frames with bytestuffing reverted and:
