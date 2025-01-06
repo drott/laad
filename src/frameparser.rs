@@ -30,7 +30,7 @@ impl Default for FrameParser {
 /// # Example
 ///
 /// ```rust
-/// use tbslib::frames::FrameParser;
+/// use laad::frameparser::FrameParser;
 /// use tokio::sync::mpsc;
 /// #[tokio::main]
 /// async fn main() {

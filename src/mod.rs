@@ -7,7 +7,7 @@
 //!
 //! ```rust
 //! use tokio::sync::mpsc;
-//! use tbslib::{decoder,frames::FrameParser,protocol::TbsPg,types::Bytes};
+//! use laad::{decoder::Decoder,frameparser::FrameParser,protocol::TbsPg,types::Bytes};
 //! #[tokio::main]
 //! async fn main() {
 //!   let (bytes_tx, bytes_rx) = mpsc::channel(5);
@@ -21,6 +21,10 @@
 //!       frame_parser.parse_frames(bytes_rx, frames_tx).await;
 //!   });
 //!
+//!   # // Avoid stalling in doctests.
+//!   # tokio::spawn(async move {
+//!   #   std::process::exit(0);
+//!   # });
 //!   while let Some(frame) = frames_rx.recv().await {
 //!       let decoder = Decoder::new();
 //!       let decoded = decoder.decode_frame(frame);
@@ -33,6 +37,7 @@
 //!           }
 //!       }
 //!   }
+//! 
 //! }
 //! ```
 
