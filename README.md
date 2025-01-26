@@ -4,6 +4,20 @@ Rust library for parsing telemetry from a TBS battery monitor, such as the [Batt
 
 So far it's been tested to decode most PGNs of a dump from the TBS Battery Monitor Expert Modular, except for those that dump internal registers and state.
 
+### Support this project
+
+If you find this project useful, please consider supporting this project:
+
+* Buymeacoffee
+
+    <a href="https://www.buymeacoffee.com/drott" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+* Paypal
+  
+  [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DETL46A3XHZAA)
+* Bitcoin:
+[18yNWDzQkgrV69HGHhK7aUMLBksR2a1UuA](bitcoin:18yNWDzQkgrV69HGHhK7aUMLBksR2a1UuA)
+
 ### Examples
 
 The `examples/` directory contains the `laadreader` command line tool that can be started against
